@@ -10,8 +10,8 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 
 	@Override
 	public void move() {
-		// TODO Auto-generated method stub
-		
+		System.out.println(myAutoController.checkEast(myAutoController.getView()));
+		myAutoController.applyForwardAcceleration();
 	}
 
 

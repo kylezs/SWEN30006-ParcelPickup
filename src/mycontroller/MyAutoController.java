@@ -3,7 +3,10 @@ package mycontroller;
 import controller.CarController;
 import swen30006.driving.Simulation;
 import world.Car;
+
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import tiles.MapTile;
 import utilities.Coordinate;
@@ -14,6 +17,9 @@ public class MyAutoController extends CarController {
 		private int wallSensitivity = 1;
 		
 		private boolean isFollowingWall = false; // This is set to true when the car starts sticking to a wall.
+		
+		// stores the locations of the exit tiles
+		private static ArrayList<Coordinate> finish = new ArrayList<Coordinate>();
 		
 		// Car Speed to move at
 		private final int CAR_MAX_SPEED = 1;
@@ -33,6 +39,14 @@ public class MyAutoController extends CarController {
 				System.out.println("Please select a valid strategy in Driving.Properties");
 				System.exit(1);
 				break;
+			}
+			
+			// find finish tiles
+			HashMap<Coordinate,MapTile> map = this.getMap();
+			for(Coordinate coord : map.keySet()){
+				if (map.get(coord).isType(MapTile.Type.FINISH)) {
+					finish.add(coord);
+				}
 			}
 		}
 		

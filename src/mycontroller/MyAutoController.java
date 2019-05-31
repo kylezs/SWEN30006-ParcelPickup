@@ -19,7 +19,7 @@ public class MyAutoController extends CarController {
 		private boolean isFollowingWall = false; // This is set to true when the car starts sticking to a wall.
 		
 		// stores the locations of the exit tiles
-		private static ArrayList<Coordinate> finish = new ArrayList<Coordinate>();
+		protected static ArrayList<Coordinate> finish = new ArrayList<Coordinate>();
 		
 		// Car Speed to move at
 		private final int CAR_MAX_SPEED = 1;

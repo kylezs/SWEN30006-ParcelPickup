@@ -1,6 +1,7 @@
 package mycontroller;
 
 import controller.CarController;
+import swen30006.driving.Simulation;
 import world.Car;
 import java.util.HashMap;
 
@@ -8,7 +9,7 @@ import tiles.MapTile;
 import utilities.Coordinate;
 import world.WorldSpatial;
 
-public class MyAutoController extends CarController{		
+public class MyAutoController extends CarController {		
 		// How many minimum units the wall is away from the player.
 		private int wallSensitivity = 1;
 		
@@ -16,39 +17,31 @@ public class MyAutoController extends CarController{
 		
 		// Car Speed to move at
 		private final int CAR_MAX_SPEED = 1;
+		private IMovementStrategy movementStrategy;
 		
 		public MyAutoController(Car car) {
 			super(car);
+			System.out.println("Conserving: " + Simulation.toConserve());
+			switch (Simulation.toConserve()) {
+			case HEALTH:
+				this.movementStrategy = new ConserveHealthStrategy(this);
+				break;
+			case FUEL:
+				this.movementStrategy = new ConserveFuelStrategy(this);
+				break;
+			default:
+				System.out.println("Please select a valid strategy in Driving.Properties");
+				System.exit(1);
+				break;
+			}
+				
 		}
 		
 		// Coordinate initialGuess;
 		// boolean notSouth = true;
 		@Override
 		public void update() {
-			// Gets what the car can see
-			HashMap<Coordinate, MapTile> currentView = getView();
-			
-			// checkStateChange();
-			if(getSpeed() < CAR_MAX_SPEED){       // Need speed to turn and progress toward the exit
-				applyForwardAcceleration();   // Tough luck if there's a wall in the way
-			}
-			if (isFollowingWall) {
-				// If wall no longer on left, turn left
-				if(!checkFollowingWall(getOrientation(), currentView)) {
-					turnLeft();
-				} else {
-					// If wall on left and wall straight ahead, turn right
-					if(checkWallAhead(getOrientation(), currentView)) {
-						turnRight();
-					}
-				}
-			} else {
-				// Start wall-following (with wall on left) as soon as we see a wall straight ahead
-				if(checkWallAhead(getOrientation(),currentView)) {
-					turnRight();
-					isFollowingWall = true;
-				}
-			}
+			this.movementStrategy.move();
 		}
 
 		/**

@@ -15,7 +15,7 @@ import world.WorldSpatial;
 
 public class MyAutoController extends CarController {		
 		// How many minimum units the wall is away from the player.
-		private int wallSensitivity = 2;
+		private int wallSensitivity = 1;
 		
 		private boolean isFollowingWall = false; // This is set to true when the car starts sticking to a wall.
 		
@@ -59,19 +59,25 @@ public class MyAutoController extends CarController {
 		}
 		
 		// assumes there is a one dimensional straight line path between currentPos and coord
-		protected void moveTowards(Coordinate dest) {
+		protected void moveTowards(Coordinate dest, Coordinate nextDest) {
 			Coordinate coord = new Coordinate(getPosition());
-			if (dest.x == coord.x && dest.y != coord.y 
-					|| dest.x != coord.x && dest.y == coord.y) {
+			
+			//System.out.println("at coord:" + coord.toString() + ", moving towards: " + dest.toString());
+			if (nextDest == null) {
+				this.applyBrake();
+				return;
+			}
+			
+			if (dest.x == coord.x || dest.y == coord.y) {
 				// face the right direction
 				WorldSpatial.Direction requiredDir;
-				if (dest.y > coord.y) {
+				if (dest.y < nextDest.y) {
 					requiredDir = WorldSpatial.Direction.NORTH;
-				} else if (dest.y < coord.y) {
+				} else if (dest.y > nextDest.y) {
 					requiredDir = WorldSpatial.Direction.SOUTH;
-				} else if (dest.x > coord.x) {
+				} else if (dest.x < nextDest.x) {
 					requiredDir = WorldSpatial.Direction.EAST;
-				} else if (dest.x < coord.x) {
+				} else if (dest.x > nextDest.x) {
 					requiredDir = WorldSpatial.Direction.WEST;
 				} else {
 					requiredDir = WorldSpatial.Direction.NORTH; // default, should never happen
@@ -79,11 +85,11 @@ public class MyAutoController extends CarController {
 
 				
 				// if there is not a wall ahead
+				
 				if (!checkWallAhead(this.getOrientation(), this.getView())) {
 					this.applyForwardAcceleration();
 				} else {
 					System.out.println("Wall ahead");
-					this.applyBrake();
 				}
 				
 				if (! getOrientation().equals(requiredDir)) {

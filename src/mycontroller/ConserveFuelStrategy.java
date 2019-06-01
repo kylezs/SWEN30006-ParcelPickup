@@ -26,14 +26,14 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 	@Override
 	public void move() {
 		// general strategy is
-		// while more packages are required:
-			// go to the nearest package on the shortest route
-		// then go to the exit on the shortest path
 		Coordinate currPos = new Coordinate(control.getPosition());
+		Coordinate dest;
+		Coordinate nextDest;
 		
 		// find path to exit
 		if (currentPath == null) {
-			currentPath = findPath(currPos, control.finish.get(3));
+			//currentPath = findPath(currPos, control.finish.get(3));
+			currentPath = findPath(currPos, new Coordinate(2, 5));
 			nextInPath = 0;
 			System.out.println(currentPath.toString());	
 		}
@@ -42,18 +42,21 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 		
 		if (currentPath != null) {
 			// follow the path
-			Coordinate dest = currentPath.get(currentPath.size() - nextInPath - 1);
-			
+			dest = currentPath.get(currentPath.size() - nextInPath - 1);
+			if (currentPath.size() - nextInPath - 2 >= 0) {
+				nextDest = currentPath.get(currentPath.size() - nextInPath - 2);
+			} else {
+				nextDest = null;
+			}
+			// move towards the path
+			control.moveTowards(dest, nextDest);
+			if (currPos.equals(dest)) {
+				nextInPath++;
+			}
 			if (nextInPath == currentPath.size()) {
 				// we're done, reset the path
 				nextInPath = 0;
 				currentPath = null;
-			} else {
-				// move towards the path
-				control.moveTowards(dest);
-				if (currPos.equals(dest)) {
-					nextInPath++;
-				}
 			}
 			
 		} else {

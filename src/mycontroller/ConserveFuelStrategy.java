@@ -16,6 +16,8 @@ import utilities.Coordinate;
 public class ConserveFuelStrategy implements IMovementStrategy {
 	
 	MyAutoController control;
+	private ArrayList<Coordinate> currentPath = null;
+	private int nextInPath = 0;
 
 	public ConserveFuelStrategy(MyAutoController myAutoController) {
 		this.control = myAutoController;
@@ -27,11 +29,42 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 		// while more packages are required:
 			// go to the nearest package on the shortest route
 		// then go to the exit on the shortest path
+		Coordinate currPos = new Coordinate(control.getPosition());
 		
-		ArrayList<Coordinate> pathToExit = findPath(new Coordinate(control.getPosition()),
-				control.finish.get(0));
-		// System.out.println(pathToExit.toString());		
+		// find path to exit
+		if (currentPath == null) {
+			currentPath = findPath(currPos, control.finish.get(3));
+			nextInPath = 0;
+			System.out.println(currentPath.toString());	
+		}
 		
+		
+		
+		if (currentPath != null) {
+			// follow the path
+			Coordinate dest = currentPath.get(currentPath.size() - nextInPath - 1);
+			
+			if (nextInPath == currentPath.size()) {
+				// we're done, reset the path
+				nextInPath = 0;
+				currentPath = null;
+			} else {
+				// move towards the path
+				control.moveTowards(dest);
+				if (currPos.equals(dest)) {
+					nextInPath++;
+				}
+			}
+			
+		} else {
+			if (control.numParcels() > control.numParcelsFound()) {
+				
+			} else {
+				// find path to exit
+				currentPath = findPath(currPos, control.finish.get(0));
+				// System.out.println(pathToExit.toString());	
+			}
+		}
 	}
 	
 	private ArrayList<Coordinate> findPath(Coordinate start, Coordinate dest){

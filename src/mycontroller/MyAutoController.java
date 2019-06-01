@@ -1,6 +1,7 @@
 package mycontroller;
 
 import controller.CarController;
+import controller.SimpleAutoController;
 import swen30006.driving.Simulation;
 import world.Car;
 
@@ -14,7 +15,7 @@ import world.WorldSpatial;
 
 public class MyAutoController extends CarController {		
 		// How many minimum units the wall is away from the player.
-		private int wallSensitivity = 1;
+		private int wallSensitivity = 2;
 		
 		private boolean isFollowingWall = false; // This is set to true when the car starts sticking to a wall.
 		
@@ -56,45 +57,150 @@ public class MyAutoController extends CarController {
 		public void update() {
 			this.movementStrategy.move();
 		}
+		
+		// assumes there is a one dimensional straight line path between currentPos and coord
+		protected void moveTowards(Coordinate dest) {
+			Coordinate coord = new Coordinate(getPosition());
+			if (dest.x == coord.x && dest.y != coord.y 
+					|| dest.x != coord.x && dest.y == coord.y) {
+				// face the right direction
+				WorldSpatial.Direction requiredDir;
+				if (dest.y > coord.y) {
+					requiredDir = WorldSpatial.Direction.NORTH;
+				} else if (dest.y < coord.y) {
+					requiredDir = WorldSpatial.Direction.SOUTH;
+				} else if (dest.x > coord.x) {
+					requiredDir = WorldSpatial.Direction.EAST;
+				} else if (dest.x < coord.x) {
+					requiredDir = WorldSpatial.Direction.WEST;
+				} else {
+					requiredDir = WorldSpatial.Direction.NORTH; // default, should never happen
+				}
 
+				
+				// if there is not a wall ahead
+				if (!checkWallAhead(this.getOrientation(), this.getView())) {
+					this.applyForwardAcceleration();
+				} else {
+					System.out.println("Wall ahead");
+					this.applyBrake();
+				}
+				
+				if (! getOrientation().equals(requiredDir)) {
+					turnTowards(requiredDir);
+				}
+			}
+		}
+		
+		private void turnTowards(WorldSpatial.Direction requiredDir) {
+			WorldSpatial.Direction rotatedLeft = WorldSpatial.changeDirection(getOrientation(), WorldSpatial.RelativeDirection.LEFT);
+			if (requiredDir.equals(rotatedLeft)){
+				this.applyForwardAcceleration();
+				turnLeft();
+			} else {
+				// for at most 2 rotations
+				for (int i = 0; i < 2 && !requiredDir.equals(getOrientation()); i++) {
+					this.applyForwardAcceleration();
+					turnRight();
+				}
+			}
+		}
+		
 		/**
 		 * Check if you have a wall in front of you!
 		 * @param orientation the orientation we are in based on WorldSpatial
 		 * @param currentView what the car can currently see
 		 * @return
 		 */
-		private MapTile.Type checkWallAhead(WorldSpatial.Direction orientation, HashMap<Coordinate, MapTile> currentView){
+		private boolean checkWallAhead(WorldSpatial.Direction orientation, HashMap<Coordinate, MapTile> currentView){
 			switch(orientation){
 			case EAST:
-				return checkEast(currentView);
+				return checkWallEast(currentView);
 			case NORTH:
-				return checkNorth(currentView);
+				return checkWallNorth(currentView);
 			case SOUTH:
-				return checkSouth(currentView);
+				return checkWallSouth(currentView);
 			case WEST:
-				return checkWest(currentView);
+				return checkWallWest(currentView);
 			default:
-				return null;
+				return false;
 			}
 		}
 		
+		
 		/**
-		 * Check if the wall is on your left hand side given your orientation
-		 * @param orientation
-		 * @param currentView
+		 * Method below just iterates through the list and check in the correct coordinates.
+		 * i.e. Given your current position is 10,10
+		 * checkEast will check up to wallSensitivity amount of tiles to the right.
+		 * checkWest will check up to wallSensitivity amount of tiles to the left.
+		 * checkNorth will check up to wallSensitivity amount of tiles to the top.
+		 * checkSouth will check up to wallSensitivity amount of tiles below.
+		 */
+		public boolean checkWallEast(HashMap<Coordinate, MapTile> currentView){
+			// Check tiles to my right
+			Coordinate currentPosition = new Coordinate(getPosition());
+			for(int i = 0; i <= wallSensitivity; i++){
+				MapTile tile = currentView.get(new Coordinate(currentPosition.x+i, currentPosition.y));
+				if(tile.isType(MapTile.Type.WALL)){
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		public boolean checkWallWest(HashMap<Coordinate,MapTile> currentView){
+			// Check tiles to my left
+			Coordinate currentPosition = new Coordinate(getPosition());
+			for(int i = 0; i <= wallSensitivity; i++){
+				MapTile tile = currentView.get(new Coordinate(currentPosition.x-i, currentPosition.y));
+				if(tile.isType(MapTile.Type.WALL)){
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		public boolean checkWallNorth(HashMap<Coordinate,MapTile> currentView){
+			// Check tiles to towards the top
+			Coordinate currentPosition = new Coordinate(getPosition());
+			for(int i = 0; i <= wallSensitivity; i++){
+				MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y+i));
+				if(tile.isType(MapTile.Type.WALL)){
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		public boolean checkWallSouth(HashMap<Coordinate,MapTile> currentView){
+			// Check tiles towards the bottom
+			Coordinate currentPosition = new Coordinate(getPosition());
+			for(int i = 0; i <= wallSensitivity; i++){
+				MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-i));
+				if(tile.isType(MapTile.Type.WALL)){
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		
+		/**
+		 * Check if you have a wall in front of you!
+		 * @param orientation the orientation we are in based on WorldSpatial
+		 * @param currentView what the car can currently see
 		 * @return
 		 */
-		private MapTile.Type checkFollowingWall(WorldSpatial.Direction orientation, HashMap<Coordinate, MapTile> currentView) {
-			
+		private MapTile.Type checkTileAhead(WorldSpatial.Direction orientation, HashMap<Coordinate, MapTile> currentView){
 			switch(orientation){
 			case EAST:
-				return checkNorth(currentView);
-			case NORTH:
-				return checkWest(currentView);
-			case SOUTH:
 				return checkEast(currentView);
-			case WEST:
+			case NORTH:
+				return checkNorth(currentView);
+			case SOUTH:
 				return checkSouth(currentView);
+			case WEST:
+				return checkWest(currentView);
 			default:
 				return null;
 			}
@@ -111,41 +217,28 @@ public class MyAutoController extends CarController {
 		public MapTile.Type checkEast(HashMap<Coordinate, MapTile> currentView){
 			// Check tiles to my right
 			Coordinate currentPosition = new Coordinate(getPosition());
-			for(int i = 0; i <= wallSensitivity; i++){
-				MapTile tile = currentView.get(new Coordinate(currentPosition.x+i, currentPosition.y));
-				return tile.getType();
-			}
-			return null;
+			MapTile tile = currentView.get(new Coordinate(currentPosition.x+1, currentPosition.y));
+			return tile.getType();
 		}
 		
 		public MapTile.Type checkWest(HashMap<Coordinate,MapTile> currentView){
 			// Check tiles to my left
 			Coordinate currentPosition = new Coordinate(getPosition());
-			for(int i = 0; i <= wallSensitivity; i++){
-				MapTile tile = currentView.get(new Coordinate(currentPosition.x-i, currentPosition.y));
-				return tile.getType();
-			}
-			return null;
+			MapTile tile = currentView.get(new Coordinate(currentPosition.x-1, currentPosition.y));
+			return tile.getType();
 		}
 		
 		public MapTile.Type checkNorth(HashMap<Coordinate,MapTile> currentView){
 			// Check tiles to towards the top
 			Coordinate currentPosition = new Coordinate(getPosition());
-			for(int i = 0; i <= wallSensitivity; i++){
-				MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y+i));
-				return tile.getType();
-			}
-			return null;
+			MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y+1));
+			return tile.getType();
 		}
 		
 		public MapTile.Type checkSouth(HashMap<Coordinate,MapTile> currentView){
 			// Check tiles towards the bottom
 			Coordinate currentPosition = new Coordinate(getPosition());
-			for(int i = 0; i <= wallSensitivity; i++){
-				MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-i));
-				return tile.getType();
-			}
-			return null;
+			MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-1));
+			return tile.getType();
 		}
-		
 	}

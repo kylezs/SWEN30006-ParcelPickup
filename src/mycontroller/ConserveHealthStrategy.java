@@ -13,6 +13,8 @@ import utilities.Coordinate;
 
 public class ConserveHealthStrategy implements IMovementStrategy {
 	
+	
+	
 	MyAutoController control;
 
 	public ConserveHealthStrategy(MyAutoController myAutoController) {
@@ -22,21 +24,46 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 	@Override
 	public void move() {
 
+		// Init at same position, find next place to go
 		Coordinate currPos = new Coordinate(control.getPosition());
+		Coordinate currGoing = new Coordinate(control.getPosition());
 		
-		ArrayList<Coordinate> path = findPath(currPos, control.finish.get(0));
-//		System.out.println(path);
+		
+		ArrayList<Coordinate> currPath = new ArrayList<>();
+		
 		
 		Set<Map.Entry<Coordinate, MapTile>> viewSet = control.getView().entrySet();
-		for (Map.Entry<Coordinate, MapTile> item : viewSet) {
-			System.out.println(item.getKey() + ", " + item.getValue().getType());
-//			if (item.getValue().getType() == MapTile.Type.TRAP) {
-//				TrapTile trapTile = (TrapTile) item.getValue();
-//				System.out.println(item.getKey().x + ", " + item.getKey().y);
-//				System.out.println(trapTile.getTrap());
-//			}
-			
+		
+		// Set the next go to
+		if (currGoing.equals(currPos)) {
+			// Go through all tiles, see if there's a parcel in the current view that we can collect
+			for (Map.Entry<Coordinate, MapTile> item : viewSet) {
+				Coordinate tileCoord = item.getKey();
+				MapTile tile = item.getValue();
+				System.out.println(tileCoord + ", " + item.getValue().getType());
+				if (tile.getType() == MapTile.Type.TRAP) {
+					TrapTile trapTile = (TrapTile) item.getValue();
+					String trapType = trapTile.getTrap();
+					if (trapType.equals("parcel")) {
+						System.out.println("Got to the trap analysis");
+						currGoing = tileCoord;
+						currPath = findPath(currPos, tileCoord);
+					} else if (trapType.equals("health")) {
+						currGoing = tileCoord;
+						currPath = findPath(currPos, tileCoord);
+						System.out.println("Health trap");
+					}
+				}
+			}
 		}
+		
+		for (Coordinate nextCoord : currPath) {
+			System.out.println("Hello");
+			control.moveTowards(nextCoord);
+		}
+		
+		
+		
 		System.out.println(control.getView());
 //		control.applyForwardAcceleration();
 		
@@ -44,8 +71,8 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 			System.out.println("Heading to exit, have enough parcels!");
 		}
 	}
+
 	
-	// TODO: To be removed later and put somewhere useful
 	private ArrayList<Coordinate> findPath(Coordinate start, Coordinate dest){
 		// perform BFS on the map
 		ArrayList<Coordinate> path = new ArrayList<>();

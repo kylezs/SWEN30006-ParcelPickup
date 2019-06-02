@@ -1,27 +1,26 @@
 package mycontroller;
 
 import controller.CarController;
-import controller.SimpleAutoController;
 import exceptions.UnsupportedModeException;
 import swen30006.driving.Simulation;
 import world.Car;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-
 import tiles.MapTile;
 import utilities.Coordinate;
 import world.WorldSpatial;
 
 public class MyAutoController extends CarController {		
 		// How many minimum units the wall is away from the player.
+
 		private int wallSensitivity = 1;
 		
 		private boolean isFollowingWall = false; // This is set to true when the car starts sticking to a wall.
 		private boolean isGoingForward = false;
 		private boolean isBackingFromWall = false;
 		private boolean isDrivingFromWall = false;
+
 		
 		// stores the locations of the exit tiles
 		protected ArrayList<Coordinate> finish = new ArrayList<Coordinate>();

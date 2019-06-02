@@ -80,7 +80,6 @@ public class MyAutoController extends CarController {
 		// assumes dest is one step in a cardinal direction away from current position
 		protected void moveTowards(Coordinate dest) {
 			Coordinate coord = new Coordinate(getPosition());
-			WorldSpatial.Direction reverseDirection = WorldSpatial.reverseDirection(this.getOrientation());
 			
 			// for when a path ended right in front of a wall facing it and the new path required
 			// an immediate turn
@@ -101,12 +100,14 @@ public class MyAutoController extends CarController {
 			if (Math.abs(coord.x - dest.x) + Math.abs(coord.y - dest.y) == 1) {
 				myRelativeDirection reqRelDir = requiredRelativeDirection(dest);
 				if (reqRelDir == myRelativeDirection.LEFT || reqRelDir == myRelativeDirection.RIGHT) {
-					// if stuck on a wall and need to turn
+					// if we need to turn but are not moving
 					if (getSpeed() == 0) {
+						// if there is a wall ahead, move backwards and indicate this happened
+						// note: this assumes there cannot be both a wall in front and behind
 						if(checkWallAhead(this.getOrientation(), this.getView())) {
 							this.applyReverseAcceleration();
 							isBackingFromWall = true;
-						} else if (checkWallAhead(reverseDirection, this.getView())) {
+						} else {
 							this.applyForwardAcceleration();
 							isDrivingFromWall = true;
 						}

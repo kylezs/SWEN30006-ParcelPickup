@@ -9,6 +9,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Queue;
+import java.util.Set;
 
 import tiles.LavaTrap;
 import tiles.MapTile;
@@ -346,7 +347,7 @@ public class MyAutoController extends CarController {
 			this.isGoingForward = true;
 		}
 		
-		private ArrayList<Coordinate> findPath(Coordinate start, Coordinate dest, ArrayList<Coordinate> coordsToAvoid){
+		protected ArrayList<Coordinate> findPath(Coordinate start, Coordinate dest, Set<Coordinate> coordsToAvoid){
 			// perform BFS on the map
 			ArrayList<Coordinate> path = new ArrayList<>();
 			HashMap<Coordinate,MapTile> map = this.getMap();
@@ -398,7 +399,7 @@ public class MyAutoController extends CarController {
 			return path;
 		}
 		
-		private void setPath(ArrayList<Coordinate> path) {
+		protected void setPath(ArrayList<Coordinate> path) {
 			assert(path != null);
 			
 			this.applyBrake();
@@ -412,14 +413,14 @@ public class MyAutoController extends CarController {
 			updateDest();
 		}
 		
-		private void resetPath() {
+		protected void resetPath() {
 			this.applyBrake();
 			this.currentPath = null;
 			this.nextInPath = 0;
 			System.out.println("Path reset");
 		}
 		
-		private void updateDest() {
+		protected void updateDest() {
 			this.dest = currentPath.get(currentPath.size() - nextInPath - 1);
 		}
 	}

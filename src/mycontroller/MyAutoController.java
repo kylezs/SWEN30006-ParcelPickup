@@ -7,6 +7,8 @@ import world.Car;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import tiles.LavaTrap;
 import tiles.MapTile;
 import utilities.Coordinate;
 import world.WorldSpatial;
@@ -26,6 +28,7 @@ public class MyAutoController extends CarController {
 		protected ArrayList<Coordinate> finish = new ArrayList<Coordinate>();
 		protected ArrayList<Coordinate> unseenCoords = new ArrayList<Coordinate>();
 		protected HashMap<Coordinate,MapTile> map;
+		protected HashMap<Coordinate,MapTile> hazardsMap = new HashMap<>();
 		
 		// Car Speed to move at
 		private final int CAR_MAX_SPEED = 1;
@@ -71,6 +74,9 @@ public class MyAutoController extends CarController {
 						map.remove(coord);
 						map.put(coord, view.get(coord));
 					}
+				}
+				if (view.get(coord) instanceof LavaTrap) {
+					hazardsMap.put(coord, view.get(coord));
 				}
 			}
 			

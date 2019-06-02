@@ -37,9 +37,7 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 		// if we have enough packages head to the exit
 		if (control.numParcels() <= control.numParcelsFound()) {
 			// if we don't have a path to the exit
-			if (currentPath == null || !isHeadingToFinish) {
-				control.applyBrake();
-				
+			if (currentPath == null || !isHeadingToFinish) {	
 				// find path to exit
 				System.out.println("Finding path to exit");
 				setPath(findPath(currPos, control.finish.get(0)));
@@ -161,9 +159,9 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 	}
 	
 	private void setPath(ArrayList<Coordinate> path) {
+		control.applyBrake();
 		this.currentPath = path;
 		this.nextInPath = 0;
-		if (currentPath != null) updateDest();
 		
 		if (path != null && path.size() > 0) {
 			System.out.println("Path set towards: " + path.get(0));
@@ -171,6 +169,8 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 		} else {
 			System.out.println("Path reset");
 		}
+		
+		if (currentPath != null) updateDest();
 	}
 	
 	private void updateDest() {

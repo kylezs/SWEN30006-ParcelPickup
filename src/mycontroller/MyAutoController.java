@@ -21,6 +21,7 @@ public class MyAutoController extends CarController {
 		private boolean isFollowingWall = false; // This is set to true when the car starts sticking to a wall.
 		private boolean isGoingForward = false;
 		private boolean isBackingFromWall = false;
+		private boolean isDrivingFromWall = false;
 		
 		// stores the locations of the exit tiles
 		protected ArrayList<Coordinate> finish = new ArrayList<Coordinate>();
@@ -80,15 +81,19 @@ public class MyAutoController extends CarController {
 		// assumes dest is one step in a cardinal direction away from current position
 		protected void moveTowards(Coordinate dest) {
 			Coordinate coord = new Coordinate(getPosition());
+			WorldSpatial.Direction reverseDirection = WorldSpatial.reverseDirection(this.getOrientation());
 			
 			// for when a path ended right in front of a wall facing it and the new path required
 			// an immediate turn
-			if (isBackingFromWall) {
-				if (!isGoingForward) {
+			if (isBackingFromWall || isDrivingFromWall) {
+				if (getSpeed() != 0) {
 					 this.applyBrake();
-				} else {
+				} else if (isBackingFromWall){
 					this.applyForwardAcceleration();
 					isBackingFromWall = false;	
+				} else if (isDrivingFromWall){
+					this.applyReverseAcceleration();
+					isDrivingFromWall = false;	
 				}
 				return;
 			}
@@ -98,12 +103,14 @@ public class MyAutoController extends CarController {
 				myRelativeDirection reqRelDir = requiredRelativeDirection(dest);
 				if (reqRelDir == myRelativeDirection.LEFT || reqRelDir == myRelativeDirection.RIGHT) {
 					// if stuck on a wall and need to turn
-					if (checkWallAhead(this.getOrientation(), this.getView())
-							&& getSpeed() == 0) {
-						// implement back out strategy 
-						System.out.println("waiting on backout strategy");
-						isBackingFromWall = true;
-						this.applyReverseAcceleration();
+					if (getSpeed() == 0) {
+						if(checkWallAhead(this.getOrientation(), this.getView())) {
+							this.applyReverseAcceleration();
+							isBackingFromWall = true;
+						} else if (checkWallAhead(reverseDirection, this.getView())) {
+							this.applyForwardAcceleration();
+							isDrivingFromWall = true;
+						}
 					} else {
 						turnTowards(reqRelDir);
 					}
@@ -117,17 +124,9 @@ public class MyAutoController extends CarController {
 		
 		private void turnTowards(myRelativeDirection requiredDir) {
 			if (requiredDir == myRelativeDirection.LEFT) {
-				if (isGoingForward) {
-					turnLeft();
-				} else {
-					turnRight();
-				}
+				turnLeft();
 			} else if (requiredDir == myRelativeDirection.RIGHT) {
-				if (isGoingForward) {
-					turnRight();
-				} else {
-					turnLeft();
-				}
+				turnRight();
 			}
 		}
 		

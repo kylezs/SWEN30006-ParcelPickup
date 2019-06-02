@@ -2,6 +2,7 @@ package mycontroller;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -18,10 +19,7 @@ import world.World;
 public class ConserveFuelStrategy implements IMovementStrategy {
 	
 	MyAutoController control;
-	private ArrayList<Coordinate> currentPath = null;
-	private int nextInPath = 0;
-	private Coordinate dest;
-	private boolean isHeadingToFinish = false;
+	HashSet<Coordinate> emptySet = new HashSet<Coordinate>();
 
 	public ConserveFuelStrategy(MyAutoController myAutoController) {
 		this.control = myAutoController;
@@ -34,43 +32,62 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 		// moving towards exit
 		Coordinate currPos = new Coordinate(control.getPosition());
 		
+		if (control.currentPath != null) {
+			// did we make it to the control.dest?
+			if (currPos.equals(control.dest)) {
+				control.nextInPath++;
+			}
+			
+			// have we finished the path?
+			if (control.nextInPath == control.currentPath.size()) {
+				System.out.println("Made it to control.destination");
+				// reset the path and stop
+				control.resetPath();
+			} else {
+				control.updateDest();
+			}
+		}
+		
 		// if we have enough packages head to the exit
 		if (control.numParcels() <= control.numParcelsFound()) {
 			// if we don't have a path to the exit
-			if (currentPath == null || !isHeadingToFinish) {	
+			if (control.currentPath == null || !control.isHeadingToFinish) {	
 				// find path to exit
 				System.out.println("Finding path to exit");
-				setPath(findPath(currPos, control.finish.get(0)));
-				// System.out.println(pathToExit.toString());
-				isHeadingToFinish = true;
+				control.setPath(control.findPath(currPos, control.finish.get(0), emptySet));
+				// System.out.println(pathToExit.toString());	
+				control.isHeadingToFinish = true;
 			}
 		}
 		
 		// move towards any visible packages if we're not heading to the finish
 		HashMap<Coordinate,MapTile> view = control.getView();
-		if (!isHeadingToFinish) {
+		if (!control.isHeadingToFinish) {
 			// if we don't have a path to a parcel
-			if (currentPath == null || !( view.get(currentPath.get(0)) instanceof ParcelTrap )) {
+			if (control.currentPath == null || !( view.get(control.currentPath.get(0)) instanceof ParcelTrap )) {
 				for (Coordinate coord: view.keySet()) {
 					// if the tile in view is a parcel make a path to it
 					if (view.get(coord) instanceof ParcelTrap) {
-						System.out.println("Deviating towards parcel");
-						setPath(findPath(currPos, coord));
-						break;
+						ArrayList<Coordinate> tempPath = control.findPath(currPos, coord, emptySet);
+						if (tempPath != null) {
+							System.out.println("Deviating towards parcel");
+							control.setPath(tempPath);
+							break;
+						}
 					}
 				}
 			}
 		}
 		
 		// if we still don't have a path, head to the closest unseen tile (acording to path length)
-		if (currentPath == null) {
+		if (control.currentPath == null) {
 			// advance in spiral around currPos until "close enough" point is found
 			// currently just looks at all points and finds closest, room for optimisation
 			ArrayList<Coordinate> path;
 			ArrayList<Coordinate> bestPath = null;
 			for (Coordinate coord: generateSpiral(currPos)) {
 				if (control.unseenCoords.contains(coord)) {
-					path = findPath(currPos, coord);
+					path = control.findPath(currPos, coord, emptySet);
 					if (path.size() > 0) {
 						if (bestPath == null || path.size() < bestPath.size()) {
 							bestPath = path;
@@ -78,109 +95,10 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 					}
 				}
 			}
-			setPath(bestPath);
+			control.setPath(bestPath);
 		}
 		
-		// now we will certainly have a path to follow
-		
-		// did we make it to the dest?
-		if (currPos.equals(dest)) {
-			nextInPath++;
-		}
-		
-		// have we finished the path?
-		if (nextInPath == currentPath.size()) {
-			System.out.println("Made it to destination");
-			// reset the path and stop
-			resetPath();
-			control.applyBrake();
-		}
-		
-		// if we didn't just reset the path update the destination coord
-		if (currentPath != null) {
-			updateDest();
-			// move towards the path
-			control.moveTowards(dest);
-		}
-		
-	}
-	
-	private ArrayList<Coordinate> findPath(Coordinate start, Coordinate dest){
-		// perform BFS on the map
-		ArrayList<Coordinate> path = new ArrayList<>();
-		HashMap<Coordinate,MapTile> map = control.getMap();
-		HashMap<Coordinate, Node> node_map = new HashMap<>();
-		for (Coordinate coord: map.keySet()) {
-			node_map.put(coord, new Node(coord, null));
-		}
-		
-		Queue<Node> queue = new ArrayDeque<>();
-		Node start_node = node_map.get(start);
-		start_node.setDiscovered(true);
-		queue.add(start_node);
-		
-		while(queue.size() > 0) {
-			Node curr = queue.remove();
-			if (curr.getCoord().equals(dest)) {
-				// build path
-				path.add(curr.getCoord());
-				while (curr.getFrom() != null && !curr.getFrom().getCoord().equals(start)) {
-					path.add(curr.getFrom().getCoord());
-					curr = curr.getFrom();
-				}
-				// we're done, break and return path
-				break;
-			}
-			
-			// find all valid adjacent tiles to curr
-			int x = curr.getCoord().x;
-			int y = curr.getCoord().y;
-			
-			int[][] xy_changes = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-			for (int[] dxdy: xy_changes) {
-				Coordinate next_coord = new Coordinate(x + dxdy[0], y + dxdy[1]);
-				MapTile tile = map.get(next_coord);
-				
-				// if the coord corresponds to a non-wall tile
-				if (tile != null && !tile.isType(MapTile.Type.WALL)) {
-					Node next_node = node_map.get(next_coord);
-					// if undiscovered and is a drivable tile
-					if (! next_node.isDiscovered()) {
-						next_node.setDiscovered(true);
-						next_node.setFrom(curr);
-						queue.add(next_node);
-					}
-				}
-			}
-			
-		}
-		
-		return path;
-	}
-	
-	private void setPath(ArrayList<Coordinate> path) {
-		assert(path != null);
-		
-		control.applyBrake();
-		this.currentPath = path;
-		this.nextInPath = 0;
-		
-		
-		System.out.println("Path set towards: " + path.get(0));
-		System.out.println(path.toString());
-		
-		updateDest();
-	}
-	
-	private void resetPath() {
-		control.applyBrake();
-		this.currentPath = null;
-		this.nextInPath = 0;
-		System.out.println("Path reset");
-	}
-	
-	private void updateDest() {
-		this.dest = currentPath.get(currentPath.size() - nextInPath - 1);
+		control.moveTowards(control.dest);
 	}
 	
 	

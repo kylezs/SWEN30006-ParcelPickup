@@ -25,10 +25,10 @@ public class MyAutoController extends CarController {
 		private boolean isBackingFromWall = false;
 		private boolean isDrivingFromWall = false;
 
-		private ArrayList<Coordinate> currentPath = null;
-		private int nextInPath = 0;
-		private Coordinate dest;
-		private boolean isHeadingToFinish = false;
+		protected ArrayList<Coordinate> currentPath = null;
+		protected int nextInPath = 0;
+		protected Coordinate dest;
+		protected boolean isHeadingToFinish = false;
 		
 		// stores the locations of the exit tiles
 		protected ArrayList<Coordinate> finish = new ArrayList<Coordinate>();

@@ -69,7 +69,7 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 					// if the tile in view is a parcel make a path to it
 					if (view.get(coord) instanceof ParcelTrap) {
 						ArrayList<Coordinate> tempPath = control.findPath(currPos, coord, emptySet);
-						if (tempPath != null) {
+						if (tempPath.size() > 0) {
 							System.out.println("Deviating towards parcel");
 							control.setPath(tempPath);
 							break;

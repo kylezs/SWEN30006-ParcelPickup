@@ -71,7 +71,7 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 			for (Coordinate coord: generateSpiral(currPos)) {
 				if (control.unseenCoords.contains(coord)) {
 					path = findPath(currPos, coord);
-					if (path != null) {
+					if (path.size() > 0) {
 						if (bestPath == null || path.size() < bestPath.size()) {
 							bestPath = path;
 						}
@@ -90,9 +90,9 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 		
 		// have we finished the path?
 		if (nextInPath == currentPath.size()) {
-			System.out.println("Made it to destination, resetting path");
+			System.out.println("Made it to destination");
 			// reset the path and stop
-			setPath(null);
+			resetPath();
 			control.applyBrake();
 		}
 		
@@ -159,18 +159,24 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 	}
 	
 	private void setPath(ArrayList<Coordinate> path) {
+		assert(path != null);
+		
 		control.applyBrake();
 		this.currentPath = path;
 		this.nextInPath = 0;
 		
-		if (path != null && path.size() > 0) {
-			System.out.println("Path set towards: " + path.get(0));
-			System.out.println(path.toString());
-		} else {
-			System.out.println("Path reset");
-		}
 		
-		if (currentPath != null) updateDest();
+		System.out.println("Path set towards: " + path.get(0));
+		System.out.println(path.toString());
+		
+		updateDest();
+	}
+	
+	private void resetPath() {
+		control.applyBrake();
+		this.currentPath = null;
+		this.nextInPath = 0;
+		System.out.println("Path reset");
 	}
 	
 	private void updateDest() {

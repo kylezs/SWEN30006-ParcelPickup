@@ -2,6 +2,7 @@ package mycontroller;
 
 import controller.CarController;
 import controller.SimpleAutoController;
+import exceptions.UnsupportedModeException;
 import swen30006.driving.Simulation;
 import world.Car;
 
@@ -26,7 +27,7 @@ public class MyAutoController extends CarController {
 		private final int CAR_MAX_SPEED = 1;
 		private IMovementStrategy movementStrategy;
 		
-		public MyAutoController(Car car) {
+		public MyAutoController(Car car) throws UnsupportedModeException {
 			super(car);
 			System.out.println("Conserving: " + Simulation.toConserve());
 			switch (Simulation.toConserve()) {
@@ -37,9 +38,7 @@ public class MyAutoController extends CarController {
 				this.movementStrategy = new ConserveFuelStrategy(this);
 				break;
 			default:
-				System.out.println("Please select a valid strategy in Driving.Properties");
-				System.exit(1);
-				break;
+				throw new UnsupportedModeException();
 			}
 			
 			// find finish tiles

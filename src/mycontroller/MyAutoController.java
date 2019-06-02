@@ -19,9 +19,13 @@ public class MyAutoController extends CarController {
 		private int wallSensitivity = 1;
 		
 		private boolean isFollowingWall = false; // This is set to true when the car starts sticking to a wall.
+		private boolean isGoingForward = false;
+		private boolean isBackingFromWall = false;
 		
 		// stores the locations of the exit tiles
 		protected ArrayList<Coordinate> finish = new ArrayList<Coordinate>();
+		protected ArrayList<Coordinate> unseenCoords = new ArrayList<Coordinate>();
+		protected HashMap<Coordinate,MapTile> map;
 		
 		// Car Speed to move at
 		private final int CAR_MAX_SPEED = 1;
@@ -42,10 +46,13 @@ public class MyAutoController extends CarController {
 			}
 			
 			// find finish tiles
-			HashMap<Coordinate,MapTile> map = this.getMap();
+			map = this.getMap();
 			for(Coordinate coord : map.keySet()){
 				if (map.get(coord).isType(MapTile.Type.FINISH)) {
 					finish.add(coord);
+				}
+				if (!map.get(coord).isType(MapTile.Type.WALL)) {
+					unseenCoords.add(coord);
 				}
 			}
 		}
@@ -54,62 +61,111 @@ public class MyAutoController extends CarController {
 		// boolean notSouth = true;
 		@Override
 		public void update() {
+			// mark all tiles in view as seen
+			HashMap<Coordinate,MapTile> view = getView();
+			for (Coordinate coord: view.keySet()) {
+				if (unseenCoords.contains(coord)) {
+					unseenCoords.remove(coord);
+					// update the tile in our map
+					if (! view.get(coord).equals(map.get(coord))) {
+						map.remove(coord);
+						map.put(coord, view.get(coord));
+					}
+				}
+			}
+			
 			this.movementStrategy.move();
 		}
 		
-		// assumes there is a one dimensional straight line path between currentPos and coord
-		protected void moveTowards(Coordinate dest, Coordinate nextDest) {
+		// assumes dest is one step in a cardinal direction away from current position
+		protected void moveTowards(Coordinate dest) {
 			Coordinate coord = new Coordinate(getPosition());
 			
-			//System.out.println("at coord:" + coord.toString() + ", moving towards: " + dest.toString());
-			if (nextDest == null) {
-				this.applyBrake();
+			// for when a path ended right in front of a wall facing it and the new path required
+			// an immediate turn
+			if (isBackingFromWall) {
+				if (!isGoingForward) {
+					 this.applyBrake();
+				} else {
+					this.applyForwardAcceleration();
+					isBackingFromWall = false;	
+				}
 				return;
 			}
 			
-			if (dest.x == coord.x || dest.y == coord.y) {
-				// face the right direction
-				WorldSpatial.Direction requiredDir;
-				if (dest.y < nextDest.y) {
-					requiredDir = WorldSpatial.Direction.NORTH;
-				} else if (dest.y > nextDest.y) {
-					requiredDir = WorldSpatial.Direction.SOUTH;
-				} else if (dest.x < nextDest.x) {
-					requiredDir = WorldSpatial.Direction.EAST;
-				} else if (dest.x > nextDest.x) {
-					requiredDir = WorldSpatial.Direction.WEST;
-				} else {
-					requiredDir = WorldSpatial.Direction.NORTH; // default, should never happen
-				}
-
-				
-				// if there is not a wall ahead
-				
-				if (!checkWallAhead(this.getOrientation(), this.getView())) {
+			// if the dest is one step away from currPos
+			if (Math.abs(coord.x - dest.x) + Math.abs(coord.y - dest.y) == 1) {
+				myRelativeDirection reqRelDir = requiredRelativeDirection(dest);
+				if (reqRelDir == myRelativeDirection.LEFT || reqRelDir == myRelativeDirection.RIGHT) {
+					// if stuck on a wall and need to turn
+					if (checkWallAhead(this.getOrientation(), this.getView())
+							&& getSpeed() == 0) {
+						// implement back out strategy 
+						System.out.println("waiting on backout strategy");
+						isBackingFromWall = true;
+						this.applyReverseAcceleration();
+					} else {
+						turnTowards(reqRelDir);
+					}
+				} else if (reqRelDir == myRelativeDirection.FORWARD) {
 					this.applyForwardAcceleration();
-				} else {
-					System.out.println("Wall ahead");
-				}
-				
-				if (! getOrientation().equals(requiredDir)) {
-					turnTowards(requiredDir);
+				} else if (reqRelDir == myRelativeDirection.BACKWARD) {
+					this.applyReverseAcceleration();
 				}
 			}
 		}
 		
-		private void turnTowards(WorldSpatial.Direction requiredDir) {
-			WorldSpatial.Direction rotatedLeft = WorldSpatial.changeDirection(getOrientation(), WorldSpatial.RelativeDirection.LEFT);
-			if (requiredDir.equals(rotatedLeft)){
-				this.applyForwardAcceleration();
-				turnLeft();
-			} else {
-				// for at most 2 rotations
-				for (int i = 0; i < 2 && !requiredDir.equals(getOrientation()); i++) {
-					this.applyForwardAcceleration();
+		private void turnTowards(myRelativeDirection requiredDir) {
+			if (requiredDir == myRelativeDirection.LEFT) {
+				if (isGoingForward) {
+					turnLeft();
+				} else {
 					turnRight();
+				}
+			} else if (requiredDir == myRelativeDirection.RIGHT) {
+				if (isGoingForward) {
+					turnRight();
+				} else {
+					turnLeft();
 				}
 			}
 		}
+		
+		private static enum myRelativeDirection { LEFT, RIGHT, FORWARD, BACKWARD};
+		
+		private myRelativeDirection requiredRelativeDirection(Coordinate dest) {
+			WorldSpatial.Direction curDir = getOrientation();
+			Coordinate curPos = new Coordinate(getPosition());
+			switch (curDir) {
+			case EAST:
+				if (curPos.x + 1 == dest.x) return myRelativeDirection.FORWARD;
+				if (curPos.x - 1 == dest.x) return myRelativeDirection.BACKWARD;
+				if (curPos.y + 1 == dest.y) return myRelativeDirection.LEFT;
+				if (curPos.y - 1 == dest.y) return myRelativeDirection.RIGHT;
+				
+			case NORTH:
+				if (curPos.x + 1 == dest.x) return myRelativeDirection.RIGHT;
+				if (curPos.x - 1 == dest.x) return myRelativeDirection.LEFT;
+				if (curPos.y + 1 == dest.y) return myRelativeDirection.FORWARD;
+				if (curPos.y - 1 == dest.y) return myRelativeDirection.BACKWARD;
+				
+			case WEST:
+				if (curPos.x + 1 == dest.x) return myRelativeDirection.BACKWARD;
+				if (curPos.x - 1 == dest.x) return myRelativeDirection.FORWARD;
+				if (curPos.y + 1 == dest.y) return myRelativeDirection.RIGHT;
+				if (curPos.y - 1 == dest.y) return myRelativeDirection.LEFT;
+				
+			case SOUTH:
+				if (curPos.x + 1 == dest.x) return myRelativeDirection.LEFT;
+				if (curPos.x - 1 == dest.x) return myRelativeDirection.RIGHT;
+				if (curPos.y + 1 == dest.y) return myRelativeDirection.BACKWARD;
+				if (curPos.y - 1 == dest.y) return myRelativeDirection.FORWARD;
+				
+			default:
+				return myRelativeDirection.FORWARD;
+			}
+		}
+		
 		
 		/**
 		 * Check if you have a wall in front of you!
@@ -245,5 +301,32 @@ public class MyAutoController extends CarController {
 			Coordinate currentPosition = new Coordinate(getPosition());
 			MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-1));
 			return tile.getType();
+		}
+		
+		@Override
+		/**
+		 * Speeds the car up in the forward direction
+		 */
+		public void applyForwardAcceleration(){
+			super.applyForwardAcceleration();
+			this.isGoingForward = true;
+		}
+		
+		@Override
+		/**
+		 * Speeds the car up in the backwards direction
+		 */
+		public void applyReverseAcceleration(){
+			super.applyReverseAcceleration();
+			this.isGoingForward = false;
+		}
+		
+		@Override
+		/**
+		 * Slows the car down
+		 */
+		public void applyBrake(){
+			super.applyBrake();
+			this.isGoingForward = true;
 		}
 	}

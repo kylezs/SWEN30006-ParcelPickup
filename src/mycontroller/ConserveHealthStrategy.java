@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-
 import tiles.MapTile;
 import tiles.TrapTile;
 import utilities.Coordinate;
@@ -14,15 +13,12 @@ import world.World;
 
 public class ConserveHealthStrategy implements IMovementStrategy {
 	
-	private ArrayList<Coordinate> currPath = new ArrayList<>();
 	private boolean isHeadingToFinish = false;
 	MyAutoController control;
 	
 	// Init at same position, find next place to go
 	Coordinate currPos;
-	private int stuckInPos = 0;
 	// The end point to find a path towards
-	Coordinate currGoingTo = null;
 	String currTileToType = "road";
 
 	public ConserveHealthStrategy(MyAutoController myAutoController) {
@@ -32,15 +28,33 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 	@Override
 	public void move() {
 		
+		if (control.currentPath != null) {
+			// did we make it to the control.dest?
+			if (currPos.equals(control.dest)) {
+				control.nextInPath++;
+			}
+			
+			// have we finished the path?
+			if (control.nextInPath == control.currentPath.size()) {
+				System.out.println("Made it to control.destination");
+				// reset the path and stop
+				control.resetPath();
+			} else {
+				control.updateDest();
+			}
+		}
+		
 		currPos = new Coordinate(control.getPosition());
 		
 		Set<Map.Entry<Coordinate, MapTile>> viewSet = control.getView().entrySet();
+
 		
 
 		String trapType = "";
-		System.out.println("CurrPath: " + currPath);
+		System.out.println("control.currentPath: " + control.currentPath);
 		// If these are the same, find a new path. 
-		if ((currPos.equals(currGoingTo) || currGoingTo == null) && !isHeadingToFinish) {
+		if ((currPos.equals(control.dest) || control.dest == null) && !isHeadingToFinish) {
+			System.out.println("Add a path");
 			for (Map.Entry<Coordinate, MapTile> item : viewSet) {
 				Coordinate coord = item.getKey();
 				MapTile mapTile = item.getValue();
@@ -51,28 +65,26 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 				// Go for health first
 				if (trapType.equals("water")) {
 					System.out.println("Setting path to water tile at " + coord);
-					currPath = findPath(currPos, coord);
-					currGoingTo = currPath.get(0);
+					control.currentPath = control.findPath(currPos, coord, control.hazardsMap.keySet());
 					currTileToType = "water";
 					break;
 				} else if (trapType.equals("parcel")) {
 					System.out.println("Setting path to parcel at " + coord);
-					currPath = findPath(currPos, coord);
-					currGoingTo = currPath.get(0);
+					control.currentPath = control.findPath(currPos, coord, control.hazardsMap.keySet());
 					currTileToType = "parcel";
 					break;
 				}
 			}
 			
-			if (currPath.size() == 0 || currPath == null) {
+			if (control.currentPath == null || control.currentPath.size() == 0) {
 				System.out.println("Setting new road path");
-				// if there are no priority tiles found, just find a path
+				// advance in spiral around currPos until "close enough" point is found
 				// currently just looks at all points and finds closest, room for optimisation
 				ArrayList<Coordinate> path;
 				ArrayList<Coordinate> bestPath = null;
 				for (Coordinate coord: generateSpiral(currPos)) {
 					if (control.unseenCoords.contains(coord)) {
-						path = findPath(currPos, coord);
+						path = control.findPath(currPos, coord, control.hazardsMap.keySet());
 						if (path.size() > 0) {
 							if (bestPath == null || path.size() < bestPath.size()) {
 								bestPath = path;
@@ -80,37 +92,49 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 						}
 					}
 				}
-				currPath = bestPath;
-				if (!(currPath == null || currPath.size() == 0)) {
-					currGoingTo = currPath.get(0);
-				}
-				currTileToType = "road";
+				control.setPath(bestPath);
 			}
 
 		} else {
 			// Path has already been computed. Recompute, in case it's stuck
-			if (!currPath.isEmpty()) {
-				currPath = findPath(currPos, currPath.get(0));
+			if (!(control.currentPath == null || control.currentPath.isEmpty())) {
+				control.currentPath = control.findPath(currPos, control.currentPath.get(0), control.hazardsMap.keySet());
 			}
 			
 		}
 		
-		// TODO can be optimised
-		if (control.numParcelsFound() >= control.numParcels()) {
-			System.out.println("Heading to exit, have enough parcels!");
-			isHeadingToFinish = true;
-			currPath = findPath(currPos, control.finish.get(0));
+//		// TODO can be optimised
+//		if (control.numParcelsFound() >= control.numParcels()) {
+//			System.out.println("Heading to exit, have enough parcels!");
+//			isHeadingToFinish = true;
+//			control.currentPath = control.findPath(currPos, control.finish.get(0), control.hazardsMap.keySet());
+//		}
+		
+		// did we make it to the dest?
+		if (currPos.equals(control.dest)) {
+			control.nextInPath++;
 		}
-		// Take next step on the path that's been set
-		System.out.println("Before move: Current position;" + currPos + " next pos: " + currPath.get(currPath.size() - 1));
-		control.moveTowards(currPath.get(currPath.size() - 1));
-		currPath.remove(currPath.size() - 1);
+		
+		// have we finished the path?
+		if (control.nextInPath == control.currentPath.size()) {
+			System.out.println("Made it to destination");
+			// reset the path and stop
+			control.resetPath();
+			control.applyBrake();
+		}
+		
+		// if we didn't just reset the path update the destination coord
+		if (control.currentPath != null) {
+			control.updateDest();
+			// move towards the path
+			control.moveTowards(control.dest);
+		}
 		
 	}
 	
 	// generates a spiral of Coordinates around a specified start in the anticlockwise direction
 	// NOTE: many points in the output array will not be valid Coordinates in the map
-	private ArrayList<Coordinate> generateSpiral(Coordinate start){
+	private ArrayList<Coordinate> generateSpiral(Coordinate start) {
 		ArrayList<Coordinate> spiral = new ArrayList<>();
 		int dx = 1;
 		int signX = 1;
@@ -135,60 +159,6 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		}
 		
 		return spiral;
-	}
-
-	
-	private ArrayList<Coordinate> findPath(Coordinate start, Coordinate dest) {
-		// perform BFS on the map
-		ArrayList<Coordinate> path = new ArrayList<>();
-		HashMap<Coordinate,MapTile> map = control.getMap();
-		HashMap<Coordinate, Node> node_map = new HashMap<>();
-		for (Coordinate coord: map.keySet()) {
-			node_map.put(coord, new Node(coord, null));
-		}
-		
-		Queue<Node> queue = new ArrayDeque<>();
-		Node start_node = node_map.get(start);
-		start_node.setDiscovered(true);
-		queue.add(start_node);
-		
-		while(queue.size() > 0) {
-			Node curr = queue.remove();
-			if (curr.getCoord().equals(dest)) {
-				// build path
-				path.add(curr.getCoord());
-				while (curr.getFrom() != null && !curr.getFrom().getCoord().equals(start)) {
-					path.add(curr.getFrom().getCoord());
-					curr = curr.getFrom();
-				}
-				// we're done, break and return path
-				break;
-			}
-			
-			// find all valid adjacent tiles to curr
-			int x = curr.getCoord().x;
-			int y = curr.getCoord().y;
-			
-			int[][] xy_changes = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-			for (int[] dxdy: xy_changes) {
-				Coordinate next_coord = new Coordinate(x + dxdy[0], y + dxdy[1]);
-				MapTile tile = map.get(next_coord);
-				
-				// if the coord corresponds to a non-wall tile
-				if (tile != null && !tile.isType(MapTile.Type.WALL)) {
-					Node next_node = node_map.get(next_coord);
-					// if undiscovered and is a drivable tile
-					if (! next_node.isDiscovered()) {
-						next_node.setDiscovered(true);
-						next_node.setFrom(curr);
-						queue.add(next_node);
-					}
-				}
-			}
-			
-		}
-		
-		return path;
 	}
 
 

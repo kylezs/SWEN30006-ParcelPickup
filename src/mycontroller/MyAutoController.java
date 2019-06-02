@@ -16,9 +16,7 @@ import world.WorldSpatial;
 
 public class MyAutoController extends CarController {		
 		// How many minimum units the wall is away from the player.
-		private int wallSensitivity = 1;
-		
-		private boolean isFollowingWall = false; // This is set to true when the car starts sticking to a wall.
+		private int wallSensitivity = 2;
 		
 		// stores the locations of the exit tiles
 		protected ArrayList<Coordinate> finish = new ArrayList<Coordinate>();

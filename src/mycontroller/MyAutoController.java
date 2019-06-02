@@ -112,7 +112,6 @@ public class MyAutoController extends CarController {
 			
 			// if the dest is one step away from currPos
 			if (Math.abs(coord.x - dest.x) + Math.abs(coord.y - dest.y) == 1) {
-				System.out.println("If the dest is one step away");
 				myRelativeDirection reqRelDir = requiredRelativeDirection(dest);
 				if (reqRelDir == myRelativeDirection.LEFT || reqRelDir == myRelativeDirection.RIGHT) {
 					// if we need to turn but are not moving

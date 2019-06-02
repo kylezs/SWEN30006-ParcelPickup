@@ -84,6 +84,7 @@ public class MyAutoController extends CarController {
 			// for when a path ended right in front of a wall facing it and the new path required
 			// an immediate turn
 			if (isBackingFromWall || isDrivingFromWall) {
+				System.out.println("is backing from wall or driving from wall");
 				if (getSpeed() != 0) {
 					 this.applyBrake();
 				} else if (isBackingFromWall){
@@ -98,6 +99,7 @@ public class MyAutoController extends CarController {
 			
 			// if the dest is one step away from currPos
 			if (Math.abs(coord.x - dest.x) + Math.abs(coord.y - dest.y) == 1) {
+				System.out.println("If the dest is one step away");
 				myRelativeDirection reqRelDir = requiredRelativeDirection(dest);
 				if (reqRelDir == myRelativeDirection.LEFT || reqRelDir == myRelativeDirection.RIGHT) {
 					// if we need to turn but are not moving
@@ -117,7 +119,10 @@ public class MyAutoController extends CarController {
 				} else if (reqRelDir == myRelativeDirection.FORWARD) {
 					this.applyForwardAcceleration();
 				} else if (reqRelDir == myRelativeDirection.BACKWARD) {
+					System.out.println("Applying reverse acceleration");
 					this.applyReverseAcceleration();
+				} else {
+					System.out.println("Movetowards couldn't move the car");
 				}
 			}
 		}

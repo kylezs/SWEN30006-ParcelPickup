@@ -20,6 +20,7 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 	
 	// Init at same position, find next place to go
 	Coordinate currPos;
+	private int stuckInPos = 0;
 	// The end point to find a path towards
 	Coordinate currGoingTo = null;
 	String currTileToType = "road";
@@ -35,10 +36,11 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		
 		Set<Map.Entry<Coordinate, MapTile>> viewSet = control.getView().entrySet();
 		
-		// If these are the same, find a new path. 
+
 		String trapType = "";
 		System.out.println("CurrPath: " + currPath);
-		if (currPos.equals(currGoingTo) || currGoingTo == null) {
+		// If these are the same, find a new path. 
+		if ((currPos.equals(currGoingTo) || currGoingTo == null) && !isHeadingToFinish) {
 			for (Map.Entry<Coordinate, MapTile> item : viewSet) {
 				Coordinate coord = item.getKey();
 				MapTile mapTile = item.getValue();
@@ -79,12 +81,19 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 					}
 				}
 				currPath = bestPath;
-				currGoingTo = currPath.get(0);
+				if (!(currPath == null || currPath.size() == 0)) {
+					currGoingTo = currPath.get(0);
+				}
 				currTileToType = "road";
 			}
 
+		} else {
+			// Path has already been computed. Recompute, in case it's stuck
+			if (!currPath.isEmpty()) {
+				currPath = findPath(currPos, currPath.get(0));
+			}
+			
 		}
-		
 		
 		// TODO can be optimised
 		if (control.numParcelsFound() >= control.numParcels()) {
@@ -92,10 +101,11 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 			isHeadingToFinish = true;
 			currPath = findPath(currPos, control.finish.get(0));
 		}
-		
 		// Take next step on the path that's been set
+		System.out.println("Before move: Current position;" + currPos + " next pos: " + currPath.get(currPath.size() - 1));
 		control.moveTowards(currPath.get(currPath.size() - 1));
 		currPath.remove(currPath.size() - 1);
+		
 	}
 	
 	// generates a spiral of Coordinates around a specified start in the anticlockwise direction
@@ -128,7 +138,7 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 	}
 
 	
-	private ArrayList<Coordinate> findPath(Coordinate start, Coordinate dest){
+	private ArrayList<Coordinate> findPath(Coordinate start, Coordinate dest) {
 		// perform BFS on the map
 		ArrayList<Coordinate> path = new ArrayList<>();
 		HashMap<Coordinate,MapTile> map = control.getMap();

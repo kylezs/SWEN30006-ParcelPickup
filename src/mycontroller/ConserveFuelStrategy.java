@@ -20,6 +20,7 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 	
 	MyAutoController control;
 	HashSet<Coordinate> emptySet = new HashSet<Coordinate>();
+	private static final int criticalHealthThresh = 100;
 
 	public ConserveFuelStrategy(MyAutoController myAutoController) {
 		this.control = myAutoController;
@@ -40,7 +41,7 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 			
 			// have we finished the path?
 			if (control.nextInPath == control.currentPath.size()) {
-				System.out.println("Made it to control.destination");
+				System.out.println("Made it to destination");
 				// reset the path and stop
 				control.resetPath();
 			} else {
@@ -85,6 +86,7 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 			// currently just looks at all points and finds closest, room for optimisation
 			ArrayList<Coordinate> path;
 			ArrayList<Coordinate> bestPath = null;
+			ArrayList<Coordinate> bestHazardFreePath = null;
 			for (Coordinate coord: control.unseenCoords) {
 				path = control.findPath(currPos, coord, emptySet);
 				if (path.size() > 0) {
@@ -92,8 +94,21 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 						bestPath = path;
 					}
 				}
+				path = control.findPath(currPos, coord, control.hazardsMap.keySet());
+				if (path.size() > 0) {
+					if (bestHazardFreePath == null || path.size() < bestHazardFreePath.size()) {
+						bestHazardFreePath = path;
+					}
+				}
 			}
+			
 			control.setPath(bestPath);
+			if (bestHazardFreePath != null) {
+				int sizeDiff = bestHazardFreePath.size() - bestPath.size();
+				if (control.getHealth() < criticalHealthThresh ||  sizeDiff <= 1) {
+					control.setPath(bestHazardFreePath);
+				}
+			}
 		}
 		
 		control.moveTowards(control.dest);

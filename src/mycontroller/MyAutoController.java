@@ -427,7 +427,7 @@ public class MyAutoController extends CarController {
 		
 		// generates a spiral of Coordinates around a specified start in the anticlockwise direction
 		// NOTE: many points in the output array will not be valid Coordinates in the map
-		private ArrayList<Coordinate> generateSpiral(Coordinate start, WorldSpatial.Direction initDir){
+		protected ArrayList<Coordinate> generateSpiral(Coordinate start, WorldSpatial.Direction initDir){
 			ArrayList<Coordinate> spiral = new ArrayList<>();
 			int edgeLen = 1;
 			int signX = 1, signY = 1;

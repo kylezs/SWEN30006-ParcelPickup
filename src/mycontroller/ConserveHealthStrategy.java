@@ -10,7 +10,6 @@ import tiles.ParcelTrap;
 import tiles.TrapTile;
 import tiles.WaterTrap;
 import utilities.Coordinate;
-import world.World;
 
 public class ConserveHealthStrategy implements IMovementStrategy {
 	
@@ -143,7 +142,6 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 						return;
 					}
 				}
-				
 			}
 		}
 	}

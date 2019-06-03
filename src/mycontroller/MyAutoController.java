@@ -4,7 +4,6 @@ import controller.CarController;
 import exceptions.UnsupportedModeException;
 import swen30006.driving.Simulation;
 import world.Car;
-import world.World;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;

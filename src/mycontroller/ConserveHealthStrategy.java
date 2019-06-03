@@ -80,10 +80,7 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		
 		// if we still don't have a path, head to the closest unseen tile (acording to path length)
 		if (control.currentPath == null) {
-			// advance in spiral around currPos until "close enough" point is found
-			// currently just looks at all points and finds closest, room for optimisation
-			// advance in spiral around currPos until "close enough" point is found
-			// currently just looks at all points and finds closest, room for optimisation
+			//loop through unseen coords, finding best path there
 			ArrayList<Coordinate> path = null;
 			ArrayList<Coordinate> bestPath = null;
 			for (Coordinate coord: control.unseenCoords) {

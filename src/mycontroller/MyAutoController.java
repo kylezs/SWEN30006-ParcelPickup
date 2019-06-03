@@ -22,32 +22,31 @@ public class MyAutoController extends CarController {
 
 		private int wallSensitivity = 1;
 		
-		private boolean isFollowingWall = false; // This is set to true when the car starts sticking to a wall.
-		private boolean isGoingForward = false;
 		private boolean isBackingFromWall = false;
 		private boolean isDrivingFromWall = false;
 
+		// variables for traversing a path to a coordinate
 		protected ArrayList<Coordinate> currentPath = null;
 		protected int nextInPath = 0;
 		protected Coordinate dest;
 		protected boolean isHeadingToFinish = false;
 		
-		protected boolean isSitting;
-		private int timeSpentSitting = 0;
-		
 		// stores the locations of the exit tiles
 		protected ArrayList<Coordinate> finish = new ArrayList<Coordinate>();
+		// stores locations of unseen coordinates
 		protected ArrayList<Coordinate> unseenCoords = new ArrayList<Coordinate>();
+		
+		// keeps track of the tile types throughout the map
 		protected HashMap<Coordinate,MapTile> map;
+		// keeps track of the hazards throughout the map
 		protected HashMap<Coordinate,MapTile> hazardsMap = new HashMap<>();
 		
-		// Car Speed to move at
-		private final int CAR_MAX_SPEED = 1;
+		// strategy for choosing paths could support dynamic strategy switching
 		private IMovementStrategy movementStrategy;
 		
 		public MyAutoController(Car car) throws UnsupportedModeException {
 			super(car);
-			System.out.println("Conserving: " + Simulation.toConserve());
+//			System.out.println("Conserving: " + Simulation.toConserve());
 			switch (Simulation.toConserve()) {
 			case HEALTH:
 				this.movementStrategy = new ConserveHealthStrategy(this);
@@ -59,29 +58,28 @@ public class MyAutoController extends CarController {
 				throw new UnsupportedModeException();
 			}
 			
-			// find finish tiles
+			// find finish tiles and unseen tiles
 			map = this.getMap();
 			for(Coordinate coord : map.keySet()){
 				if (map.get(coord).isType(MapTile.Type.FINISH)) {
 					finish.add(coord);
 				}
+				// anything that is not a wall is a traversable and unseen tile
 				if (!map.get(coord).isType(MapTile.Type.WALL)) {
 					unseenCoords.add(coord);
 				}
 			}
 		}
 		
-		// Coordinate initialGuess;
-		// boolean notSouth = true;
 		@Override
 		public void update() {
-			// mark all tiles in view as seen
+			// check all tiles in view and update maps
 			HashMap<Coordinate,MapTile> view = getView();
 			for (Coordinate coord: view.keySet()) {
 				if (unseenCoords.contains(coord)) {
 					unseenCoords.remove(coord);
-					// update the tile in our map
-					if (! view.get(coord).equals(map.get(coord))) {
+					// update the tile in our map if it differs in mapTile type
+					if (! view.get(coord).isType(map.get(coord).getType())) {
 						map.remove(coord);
 						map.put(coord, view.get(coord));
 					}
@@ -90,7 +88,6 @@ public class MyAutoController extends CarController {
 					hazardsMap.put(coord, view.get(coord));
 				}
 			}
-			
 			this.movementStrategy.move();
 		}
 		
@@ -101,7 +98,7 @@ public class MyAutoController extends CarController {
 			// for when a path ended right in front of a wall facing it and the new path required
 			// an immediate turn
 			if (isBackingFromWall || isDrivingFromWall) {
-				System.out.println("is backing from wall or driving from wall");
+//				System.out.println("is backing from wall or driving from wall");
 				if (getSpeed() != 0) {
 					 this.applyBrake();
 				} else if (isBackingFromWall){
@@ -137,7 +134,7 @@ public class MyAutoController extends CarController {
 				} else if (reqRelDir == myRelativeDirection.BACKWARD) {
 					this.applyReverseAcceleration();
 				} else {
-					System.out.println("Movetowards couldn't move the car");
+//					System.out.println("Movetowards couldn't move the car");
 				}
 			}
 		}
@@ -264,91 +261,9 @@ public class MyAutoController extends CarController {
 			return false;
 		}
 		
-		
-		/**
-		 * Check if you have a wall in front of you!
-		 * @param orientation the orientation we are in based on WorldSpatial
-		 * @param currentView what the car can currently see
-		 * @return
-		 */
-		private MapTile.Type checkTileAhead(WorldSpatial.Direction orientation, HashMap<Coordinate, MapTile> currentView){
-			switch(orientation){
-			case EAST:
-				return checkEast(currentView);
-			case NORTH:
-				return checkNorth(currentView);
-			case SOUTH:
-				return checkSouth(currentView);
-			case WEST:
-				return checkWest(currentView);
-			default:
-				return null;
-			}
-		}
-		
-		/**
-		 * Method below just iterates through the list and check in the correct coordinates.
-		 * i.e. Given your current position is 10,10
-		 * checkEast will check up to wallSensitivity amount of tiles to the right.
-		 * checkWest will check up to wallSensitivity amount of tiles to the left.
-		 * checkNorth will check up to wallSensitivity amount of tiles to the top.
-		 * checkSouth will check up to wallSensitivity amount of tiles below.
-		 */
-		public MapTile.Type checkEast(HashMap<Coordinate, MapTile> currentView){
-			// Check tiles to my right
-			Coordinate currentPosition = new Coordinate(getPosition());
-			MapTile tile = currentView.get(new Coordinate(currentPosition.x+1, currentPosition.y));
-			return tile.getType();
-		}
-		
-		public MapTile.Type checkWest(HashMap<Coordinate,MapTile> currentView){
-			// Check tiles to my left
-			Coordinate currentPosition = new Coordinate(getPosition());
-			MapTile tile = currentView.get(new Coordinate(currentPosition.x-1, currentPosition.y));
-			return tile.getType();
-		}
-		
-		public MapTile.Type checkNorth(HashMap<Coordinate,MapTile> currentView){
-			// Check tiles to towards the top
-			Coordinate currentPosition = new Coordinate(getPosition());
-			MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y+1));
-			return tile.getType();
-		}
-		
-		public MapTile.Type checkSouth(HashMap<Coordinate,MapTile> currentView){
-			// Check tiles towards the bottom
-			Coordinate currentPosition = new Coordinate(getPosition());
-			MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-1));
-			return tile.getType();
-		}
-		
-		@Override
-		/**
-		 * Speeds the car up in the forward direction
-		 */
-		public void applyForwardAcceleration(){
-			super.applyForwardAcceleration();
-			this.isGoingForward = true;
-		}
-		
-		@Override
-		/**
-		 * Speeds the car up in the backwards direction
-		 */
-		public void applyReverseAcceleration(){
-			super.applyReverseAcceleration();
-			this.isGoingForward = false;
-		}
-		
-		@Override
-		/**
-		 * Slows the car down
-		 */
-		public void applyBrake(){
-			super.applyBrake();
-			this.isGoingForward = true;
-		}
-		
+		// Implements breadth-first-search to find a path from start to dest while avoiding any coordinates
+		// from the set provided. Returns an array of coordinates to follow, starting with the destination
+		// ending with the first coordinate to move to
 		protected ArrayList<Coordinate> findPath(Coordinate start, Coordinate dest, Set<Coordinate> coordsToAvoid){
 			// perform BFS on the map
 			ArrayList<Coordinate> path = new ArrayList<>();
@@ -402,24 +317,20 @@ public class MyAutoController extends CarController {
 		}
 		
 		protected void setPath(ArrayList<Coordinate> path) {
-			assert(path != null);
-			
 			this.applyBrake();
 			this.currentPath = path;
 			this.nextInPath = 0;
-			
-			
-			System.out.println("Path set towards: " + path.get(0));
-			System.out.println(path.toString());
-			
 			updateDest();
+			
+//			System.out.println("Path set towards: " + path.get(0));
+//			System.out.println(path.toString());
 		}
 		
 		protected void resetPath() {
 			this.applyBrake();
 			this.currentPath = null;
 			this.nextInPath = 0;
-			System.out.println("Path reset");
+//			System.out.println("Path reset");
 		}
 		
 		protected void updateDest() {
@@ -437,86 +348,12 @@ public class MyAutoController extends CarController {
 				
 				// have we finished the path?
 				if (this.nextInPath == this.currentPath.size()) {
-					System.out.println("Made it to destination");
+//					System.out.println("Made it to destination");
 					// reset the path and stop
 					this.resetPath();
 				} else {
 					this.updateDest();
 				}
 			}
-		}
-		
-		// generates a spiral of Coordinates around a specified start in the anticlockwise direction
-		// NOTE: many points in the output array will not be valid Coordinates in the map
-		protected ArrayList<Coordinate> generateSpiral(Coordinate start, WorldSpatial.Direction initDir){
-			ArrayList<Coordinate> spiral = new ArrayList<>();
-			int edgeLen = 1;
-			int signX = 1, signY = 1;
-			boolean dxFirst = true;
-			
-			switch(initDir) {
-			case NORTH:
-				dxFirst = false;
-				signX = -1;
-				signY = 1;
-			case WEST:
-				dxFirst = true;
-				signX = -1;
-				signY = -1;
-			case SOUTH:
-				dxFirst = false;
-				signX = 1;
-				signY = -1;
-			case EAST:
-				dxFirst = true;
-				signX = 1;
-				signY = 1;
-				
-			}
-			
-			Coordinate temp = new Coordinate(start.toString());
-			
-			// we are done when we complete a full loop and don't pick up any valid points
-			// note: two loopings of while correspond to a full spiral loop
-			boolean foundValidPoint = true;
-			boolean foundValidPointPrev = true;
-			while(foundValidPoint || foundValidPointPrev) {
-				foundValidPointPrev = foundValidPoint;
-				foundValidPoint = false;
-			
-				for (int i = 0; i < edgeLen; i++) {
-					if (dxFirst) {
-						temp.x += signX;
-					} else {
-						temp.y += signY;
-					}
-					if (isValidCoord(temp)) {
-						spiral.add(new Coordinate(temp.toString()));
-						foundValidPoint = true;
-					}
-				}
-				
-				for (int i = 0; i < edgeLen; i++) {
-					if (dxFirst) {
-						temp.y += signY;
-					} else {
-						temp.x += signX;
-					}
-					if (isValidCoord(temp)) {
-						spiral.add(new Coordinate(temp.toString()));
-						foundValidPoint = true;
-					}
-				}
-				edgeLen++;
-				signX *= -1;
-				signY *= -1;
-			}
-			
-			return spiral;
-		}
-		
-		private boolean isValidCoord(Coordinate coord) {
-			return coord.x < World.MAP_WIDTH && coord.x >= 0 &&
-					coord.y < World.MAP_HEIGHT && coord.y >= 0;
 		}
 	}

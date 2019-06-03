@@ -46,42 +46,19 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 			// if we don't have a path to the exit
 			if (control.currentPath == null || !control.isHeadingToFinish) {	
 				// find path to exit
-				System.out.println("Finding path to exit");
+//				System.out.println("Finding path to exit");
 				control.setPath(control.findPath(currPos, control.finish.get(0), emptySet));
-				// System.out.println(pathToExit.toString());	
 				control.isHeadingToFinish = true;
 			}
 		}
 		
 		// move towards any visible packages if we're not heading to the finish
-		HashMap<Coordinate,MapTile> view = control.getView();
-		if (!control.isHeadingToFinish) {
-			// if we don't have a path to a parcel
-			if (control.currentPath == null || !( view.get(control.currentPath.get(0)) instanceof ParcelTrap )) {
-				for (Coordinate coord: view.keySet()) {
-					// if the tile in view is a parcel make a path to it
-					if (view.get(coord) instanceof ParcelTrap) {
-						ArrayList<Coordinate> tempPath = control.findPath(currPos, coord, emptySet);
-						if (tempPath.size() > 0) {
-							System.out.println("Deviating towards parcel");
-							control.setPath(tempPath);
-							break;
-						}
-					} else if (view.get(coord) instanceof HealthTrap
-							&& control.getHealth() < CRITICAL_HEALTH_THRESH) {
-						ArrayList<Coordinate> tempPath = control.findPath(currPos, coord, emptySet);
-						if (tempPath.size() > 0) {
-							control.setPath(tempPath);
-						}
-					}
-				}
-			}
-		}
+		moveTowardsParcels();
 		
-		// if we still don't have a path, head to the closest unseen tile (acording to path length)
+		// if we still don't have a path, head to the closest unseen tile (according to path length)
 		if (control.currentPath == null) {
 			// advance in spiral around currPos until "close enough" point is found
-			// currently just looks at all points and finds closest, room for optimisation
+			// currently just looks at all points and finds closest, room for optimization
 			ArrayList<Coordinate> path;
 			ArrayList<Coordinate> bestPath = null;
 			ArrayList<Coordinate> bestHazardFreePath = null;
@@ -119,6 +96,34 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 			control.applyBrake();
 		} else {
 			control.moveTowards(control.dest);
+		}
+	}
+	
+	private void moveTowardsParcels() {
+		Coordinate currPos = new Coordinate(control.getPosition());
+		HashMap<Coordinate,MapTile> view = control.getView();
+		
+		if (!control.isHeadingToFinish) {
+			// if we don't have a path to a parcel
+			if (control.currentPath == null || !( view.get(control.currentPath.get(0)) instanceof ParcelTrap )) {
+				for (Coordinate coord: view.keySet()) {
+					// if the tile in view is a parcel make a path to it
+					if (view.get(coord) instanceof ParcelTrap) {
+						ArrayList<Coordinate> tempPath = control.findPath(currPos, coord, emptySet);
+						if (tempPath.size() > 0) {
+//							System.out.println("Deviating towards parcel");
+							control.setPath(tempPath);
+							break;
+						}
+					} else if (view.get(coord) instanceof HealthTrap
+							&& control.getHealth() < CRITICAL_HEALTH_THRESH) {
+						ArrayList<Coordinate> tempPath = control.findPath(currPos, coord, emptySet);
+						if (tempPath.size() > 0) {
+							control.setPath(tempPath);
+						}
+					}
+				}
+			}
 		}
 	}
 }

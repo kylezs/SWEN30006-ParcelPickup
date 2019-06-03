@@ -38,6 +38,7 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 		// moving towards exit
 		Coordinate currPos = new Coordinate(control.getPosition());
 		
+		// update path and associated variables 
 		control.updatePathVariables();
 		
 		// if we have enough packages head to the exit

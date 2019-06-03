@@ -3,8 +3,12 @@ package mycontroller;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+
 import tiles.MapTile;
 import tiles.ParcelTrap;
+import tiles.WaterTrap;
 import utilities.Coordinate;
 import world.World;
 
@@ -46,46 +50,29 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 			System.out.println("Finding path to exit");
 			if (control.currentPath == null || !control.isHeadingToFinish) {	
 				// find path to exit
-				control.setPath(control.findPath(currPos, control.finish.get(0), control.hazardsMap.keySet()));
+				ArrayList<Coordinate> tempPath = null;
+				tempPath = control.findPath(currPos, control.finish.get(0), control.hazardsMap.keySet());
 				System.out.println("Size of map: " + control.hazardsMap.keySet().size());
-				if (control.currentPath.isEmpty()) {
+				Set<Coordinate> tempHazards = new HashSet<>(control.hazardsMap.keySet());
+				ArrayList<Coordinate> toBeRemoved = new ArrayList<>();
+				// TODO: Can be optimized
+				if (tempPath == null || tempPath.size() == 0) {
 					for (Coordinate coord : control.hazardsMap.keySet()) {
-						// Remove x direction
-						if (coord.x == currPos.x) {
-							control.hazardsMap.remove(coord);
-						}
-						// Remove y direction
-						if (coord.y == currPos.y) {
-							control.hazardsMap.remove(coord);
-						}
+						toBeRemoved.add(coord);
 					}
-					control.setPath(control.findPath(currPos, control.finish.get(0), control.hazardsMap.keySet()));
-					System.out.println("Size of map: " + control.hazardsMap.keySet().size());
+					for (Coordinate rem : toBeRemoved) {
+						tempHazards.remove(rem);
+					}
 				}
+				// If it's a valid map, there should be a path now
+				control.setPath(control.findPath(currPos, control.finish.get(0), tempHazards));
 
 				// System.out.println(pathToExit.toString());	
 				control.isHeadingToFinish = true;
 			}
 		}
 		
-		// move towards any visible packages if we're not heading to the finish
-		HashMap<Coordinate,MapTile> view = control.getView();
-		if (!control.isHeadingToFinish) {
-			// if we don't have a path to a parcel
-			if (control.currentPath == null || !( view.get(control.currentPath.get(0)) instanceof ParcelTrap )) {
-				for (Coordinate coord: view.keySet()) {
-					// if the tile in view is a parcel make a path to it
-					if (view.get(coord) instanceof ParcelTrap) {
-						ArrayList<Coordinate> tempPath = control.findPath(currPos, coord, emptySet);
-						if (tempPath != null) {
-							System.out.println("Deviating towards parcel");
-							control.setPath(tempPath);
-							break;
-						}
-					}
-				}
-			}
-		}
+		headTowardsPackages(currPos);
 		
 		// if we still don't have a path, head to the closest unseen tile (acording to path length)
 		if (control.currentPath == null) {
@@ -107,6 +94,38 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		}
 		
 		control.moveTowards(control.dest);
+	}
+	
+	private void headTowardsPackages(Coordinate currPos) {
+		// move towards any visible packages if we're not heading to the finish
+		HashMap<Coordinate,MapTile> view = control.getView();
+		if (!control.isHeadingToFinish) {
+			// if we don't have a path to a parcel
+			if (control.currentPath == null || !( view.get(control.currentPath.get(0)) instanceof ParcelTrap )) {
+				for (Coordinate coord: view.keySet()) {
+					// if the tile in view is a parcel make a path to it
+					Set<Coordinate> tempHazards = new HashSet<>(control.hazardsMap.keySet());
+					if (view.get(coord) instanceof ParcelTrap) {
+						hazardFindPath(currPos, coord);
+					} else if (view.get(coord) instanceof WaterTrap) {
+						hazardFindPath(currPos, coord);
+					}
+				}
+			}
+		}
+	}
+	
+	private void hazardFindPath(Coordinate currPos, Coordinate to) {
+		ArrayList<Coordinate> tempPath = new ArrayList<>();
+		Set<Coordinate> tempHazards = new HashSet<>(control.hazardsMap.keySet());
+		tempPath = control.findPath(currPos, to, tempHazards);
+		if (tempPath != null && tempPath.size() > 0) {
+			control.setPath(tempPath);
+			return;
+		} else {
+			
+		}
+		
 	}
 	
 	

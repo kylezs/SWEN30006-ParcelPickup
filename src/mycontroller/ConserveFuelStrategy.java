@@ -6,8 +6,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 
+import tiles.HealthTrap;
 import tiles.MapTile;
 import tiles.ParcelTrap;
+import tiles.TrapTile;
 
 import java.util.Queue;
 import java.util.AbstractMap;
@@ -20,8 +22,10 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 	
 	MyAutoController control;
 	HashSet<Coordinate> emptySet = new HashSet<Coordinate>();
-	private static final int criticalHealthThresh = 100;
-	private static final int prioritiseHealthyPathThresh = 2;
+	
+	private static final int LEAVE_HEALTH_TRAP_THRESHOLD = 200;
+	private static final int CRITICAL_HEALTH_THRESH = 150;
+	private static final int PRIORITISE_HEALTH_PATH_THRESH = 2;
 
 	public ConserveFuelStrategy(MyAutoController myAutoController) {
 		this.control = myAutoController;
@@ -76,6 +80,12 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 							control.setPath(tempPath);
 							break;
 						}
+					} else if (view.get(coord) instanceof HealthTrap
+							&& control.getHealth() < CRITICAL_HEALTH_THRESH) {
+						ArrayList<Coordinate> tempPath = control.findPath(currPos, coord, emptySet);
+						if (tempPath.size() > 0) {
+							control.setPath(tempPath);
+						}
 					}
 				}
 			}
@@ -106,12 +116,22 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 			control.setPath(bestPath);
 			if (bestHazardFreePath != null) {
 				int sizeDiff = bestHazardFreePath.size() - bestPath.size();
-				if (control.getHealth() < criticalHealthThresh ||  sizeDiff <= prioritiseHealthyPathThresh) {
+				if (control.getHealth() < CRITICAL_HEALTH_THRESH ||  sizeDiff <= PRIORITISE_HEALTH_PATH_THRESH) {
 					control.setPath(bestHazardFreePath);
 				}
 			}
 		}
 		
-		control.moveTowards(control.dest);
+		// if currently on a health trap, sit there until we have plenty of health
+		boolean isHealth = false;
+		if (control.getView().get(currPos) instanceof HealthTrap) {
+			isHealth = true;
+		}
+		if (isHealth && control.getHealth() < LEAVE_HEALTH_TRAP_THRESHOLD) {
+			// do nothing
+			control.applyBrake();
+		} else {
+			control.moveTowards(control.dest);
+		}
 	}
 }

@@ -4,6 +4,7 @@ import controller.CarController;
 import exceptions.UnsupportedModeException;
 import swen30006.driving.Simulation;
 import world.Car;
+import world.World;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -422,5 +423,79 @@ public class MyAutoController extends CarController {
 		
 		protected void updateDest() {
 			this.dest = currentPath.get(currentPath.size() - nextInPath - 1);
+		}
+		
+		// generates a spiral of Coordinates around a specified start in the anticlockwise direction
+		// NOTE: many points in the output array will not be valid Coordinates in the map
+		private ArrayList<Coordinate> generateSpiral(Coordinate start, WorldSpatial.Direction initDir){
+			ArrayList<Coordinate> spiral = new ArrayList<>();
+			int edgeLen = 1;
+			int signX = 1, signY = 1;
+			boolean dxFirst = true;
+			
+			switch(initDir) {
+			case NORTH:
+				dxFirst = false;
+				signX = -1;
+				signY = 1;
+			case WEST:
+				dxFirst = true;
+				signX = -1;
+				signY = -1;
+			case SOUTH:
+				dxFirst = false;
+				signX = 1;
+				signY = -1;
+			case EAST:
+				dxFirst = true;
+				signX = 1;
+				signY = 1;
+				
+			}
+			
+			Coordinate temp = new Coordinate(start.toString());
+			
+			// we are done when we complete a full loop and don't pick up any valid points
+			// note: two loopings of while correspond to a full spiral loop
+			boolean foundValidPoint = true;
+			boolean foundValidPointPrev = true;
+			while(foundValidPoint || foundValidPointPrev) {
+				foundValidPointPrev = foundValidPoint;
+				foundValidPoint = false;
+			
+				for (int i = 0; i < edgeLen; i++) {
+					if (dxFirst) {
+						temp.x += signX;
+					} else {
+						temp.y += signY;
+					}
+					if (isValidCoord(temp)) {
+						spiral.add(new Coordinate(temp.toString()));
+						foundValidPoint = true;
+					}
+				}
+				
+				for (int i = 0; i < edgeLen; i++) {
+					if (dxFirst) {
+						temp.y += signY;
+					} else {
+						temp.x += signX;
+					}
+					if (isValidCoord(temp)) {
+						spiral.add(new Coordinate(temp.toString()));
+						foundValidPoint = true;
+					}
+				}
+				edgeLen++;
+				signX *= -1;
+				signY *= -1;
+			}
+			
+			return spiral;
+		}
+		
+		private boolean isValidCoord(Coordinate coord) {
+			return coord.x < World.MAP_WIDTH && coord.x >= 0 &&
+					coord.y < World.MAP_HEIGHT && coord.y >= 0;
 		}
 	}

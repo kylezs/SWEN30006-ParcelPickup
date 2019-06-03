@@ -85,13 +85,11 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 			// currently just looks at all points and finds closest, room for optimisation
 			ArrayList<Coordinate> path;
 			ArrayList<Coordinate> bestPath = null;
-			for (Coordinate coord: generateSpiral(currPos)) {
-				if (control.unseenCoords.contains(coord)) {
-					path = control.findPath(currPos, coord, emptySet);
-					if (path.size() > 0) {
-						if (bestPath == null || path.size() < bestPath.size()) {
-							bestPath = path;
-						}
+			for (Coordinate coord: control.unseenCoords) {
+				path = control.findPath(currPos, coord, emptySet);
+				if (path.size() > 0) {
+					if (bestPath == null || path.size() < bestPath.size()) {
+						bestPath = path;
 					}
 				}
 			}
@@ -99,35 +97,5 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 		}
 		
 		control.moveTowards(control.dest);
-	}
-	
-	
-	// generates a spiral of Coordinates around a specified start in the anticlockwise direction
-	// NOTE: many points in the output array will not be valid Coordinates in the map
-	private ArrayList<Coordinate> generateSpiral(Coordinate start){
-		ArrayList<Coordinate> spiral = new ArrayList<>();
-		int dx = 1;
-		int signX = 1;
-		int dy = 1;
-		int signY = 1;
-		Coordinate temp = new Coordinate(start.toString());
-		
-		while(start.x + dx <= World.MAP_WIDTH || start.x - dx >= 0 ||
-				start.y + dy <= World.MAP_HEIGHT || start.y - dy >= 0) {
-			for (int i = 0; i < dx; i++) {
-				temp.x += signX;
-				spiral.add(new Coordinate(temp.toString()));
-			}
-			for (int i = 0; i < dy; i++) {
-				temp.y += signY;
-				spiral.add(new Coordinate(temp.toString()));
-			}
-			dx++;
-			signX *= -1;
-			dy++;
-			signY *= -1;
-		}
-		
-		return spiral;
 	}
 }

@@ -32,6 +32,9 @@ public class MyAutoController extends CarController {
 		protected Coordinate dest;
 		protected boolean isHeadingToFinish = false;
 		
+		protected boolean isSitting;
+		private int timeSpentSitting = 0;
+		
 		// stores the locations of the exit tiles
 		protected ArrayList<Coordinate> finish = new ArrayList<Coordinate>();
 		protected ArrayList<Coordinate> unseenCoords = new ArrayList<Coordinate>();
@@ -113,7 +116,6 @@ public class MyAutoController extends CarController {
 			
 			// if the dest is one step away from currPos
 			if (Math.abs(coord.x - dest.x) + Math.abs(coord.y - dest.y) == 1) {
-				System.out.println("If the dest is one step away");
 				myRelativeDirection reqRelDir = requiredRelativeDirection(dest);
 				if (reqRelDir == myRelativeDirection.LEFT || reqRelDir == myRelativeDirection.RIGHT) {
 					// if we need to turn but are not moving
@@ -133,7 +135,6 @@ public class MyAutoController extends CarController {
 				} else if (reqRelDir == myRelativeDirection.FORWARD) {
 					this.applyForwardAcceleration();
 				} else if (reqRelDir == myRelativeDirection.BACKWARD) {
-					System.out.println("Applying reverse acceleration");
 					this.applyReverseAcceleration();
 				} else {
 					System.out.println("Movetowards couldn't move the car");

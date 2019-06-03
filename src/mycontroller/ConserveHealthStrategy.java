@@ -29,7 +29,7 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		// general strategy is go to the nearest unseen tile and at any point deviate if a
 		// package is seen. As soon as the correct number of packages are found start
 		// moving towards exit
-		Coordinate currPos = new Coordinate(control.getPosition());
+		Coordinate currPos = new Coordinate(control.getPosition());		
 		
 		if (control.currentPath != null) {
 			// did we make it to the control.dest?
@@ -76,8 +76,35 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		
 		headTowardsPackages(currPos);
 		
+		exploreUnseenMap(currPos);
+		
+		MapTile currTile = control.getView().get(currPos);
+		boolean isHealth = false;
+		if (currTile.getType() == MapTile.Type.TRAP) {
+			TrapTile trap = (TrapTile) currTile;
+			if (trap.getTrap().equals("health")) {
+				isHealth = true;
+			}
+		}
+		if (isHealth && (control.getHealth() < HEALTH_TRAP_THRESHOLD)) {
+			System.out.println("Doing nothing");
+			// do nothing
+			return;
+		} else {
+			isHealth = false;
+			control.moveTowards(control.dest);
+		}
+ 
+		
+		
+		
+	}
+	
+	private void exploreUnseenMap(Coordinate currPos) {
+		
 		// if we still don't have a path, head to the closest unseen tile (acording to path length)
 		if (control.currentPath == null) {
+			System.out.println("Explore unseen");
 			// advance in spiral around currPos until "close enough" point is found
 			// currently just looks at all points and finds closest, room for optimisation
 			// advance in spiral around currPos until "close enough" point is found
@@ -97,7 +124,7 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 			if (bestPath == null || bestPath.size() == 0) {
 				for (Coordinate coord: control.unseenCoords) {
 					Set<Coordinate> tempHazards = new HashSet<>(control.hazardsMap.keySet());
-//					path = control.findPath(currPos, coord, tempHazards);
+					path = control.findPath(currPos, coord, tempHazards);
 					for (Coordinate hazard : control.hazardsMap.keySet()) {
 						tempHazards.remove(hazard);
 						path = control.findPath(currPos, coord, tempHazards);
@@ -113,21 +140,6 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 			
 			control.setPath(bestPath);
 		}
-		
-		MapTile currTile = control.getView().get(currPos);
-		boolean isHealth = false;
-		if (currTile.getType() == MapTile.Type.TRAP) {
-			TrapTile trap = (TrapTile) currTile;
-			if (trap.getTrap().equals("health")) {
-				isHealth = true;
-			}
-		}
-		if (isHealth && control.getHealth() < HEALTH_TRAP_THRESHOLD) {
-			// do nothing
-		} else {
-			control.moveTowards(control.dest);
-		}
-		
 	}
 	
 	private void headTowardsPackages(Coordinate currPos) {
@@ -138,7 +150,6 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 			if (control.currentPath == null || !( view.get(control.currentPath.get(0)) instanceof ParcelTrap )) {
 				for (Coordinate coord: view.keySet()) {
 					// if the tile in view is a parcel make a path to it
-					Set<Coordinate> tempHazards = new HashSet<>(control.hazardsMap.keySet());
 					if (view.get(coord) instanceof ParcelTrap) {
 						hazardFindPath(currPos, coord);
 						return;
@@ -171,19 +182,20 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 			return;
 		} else if (tempPath == null || tempPath.size() == 0) {
 			
-			if (control.getHealth() < 120) {
-				// Can be optimised, coordinate-wise removal
-				for (Coordinate hazard : control.hazardsMap.keySet()) {
-					tempHazards.remove(hazard);
-					tempPath = control.findPath(currPos, to, tempHazards);
-					if (tempPath.size() > 0) {
-						break;
-					}
-				}
-			} else {
-				System.out.println("Have enough health to ignore some lava");
-				tempPath = control.findPath(currPos, to, new HashSet<Coordinate>());
-			}
+//			if (control.getHealth() < 120) {
+//				// Can be optimised, coordinate-wise removal
+//				for (Coordinate hazard : control.hazardsMap.keySet()) {
+//					tempHazards.remove(hazard);
+//					tempPath = control.findPath(currPos, to, tempHazards);
+//					if (tempPath.size() > 0) {
+//						break;
+//					}
+//				}
+//			} else {
+//				System.out.println("Have enough health to ignore some lava");
+//				tempPath = control.findPath(currPos, to, new HashSet<Coordinate>());
+//			}
+			tempPath = control.findPath(currPos, to, new HashSet<Coordinate>());
 			if (tempPath.size() > 0) {
 				control.setPath(tempPath);
 			}

@@ -3,11 +3,12 @@ package mycontroller;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
+import tiles.HealthTrap;
 import tiles.MapTile;
 import tiles.ParcelTrap;
+import tiles.TrapTile;
 import tiles.WaterTrap;
 import utilities.Coordinate;
 import world.World;
@@ -16,6 +17,9 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 	
 	MyAutoController control;
 	HashSet<Coordinate> emptySet = new HashSet<Coordinate>();
+	
+	private static final int HEALTH_TRAP_THRESHOLD = 300;
+	private static final int WATER_TRAP_THRESHOLD = 200;
 
 	public ConserveHealthStrategy(MyAutoController myAutoController) {
 		this.control = myAutoController;
@@ -78,14 +82,27 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		if (control.currentPath == null) {
 			// advance in spiral around currPos until "close enough" point is found
 			// currently just looks at all points and finds closest, room for optimisation
-			for (Coordinate coord: control.unseenCoords) {
+			for (Coordinate coord: control.generateSpiral(currPos, control.getOrientation())) {
 				if (control.unseenCoords.contains(coord)) {
 					hazardFindPath(currPos, coord);
 				}
 			}
 		}
 		
-		control.moveTowards(control.dest);
+		MapTile currTile = control.getView().get(currPos);
+		boolean isHealth = false;
+		if (currTile.getType() == MapTile.Type.TRAP) {
+			TrapTile trap = (TrapTile) currTile;
+			if (trap.getTrap().equals("health")) {
+				isHealth = true;
+			}
+		}
+		if (isHealth && control.getHealth() < HEALTH_TRAP_THRESHOLD) {
+			// do nothing
+		} else {
+			control.moveTowards(control.dest);
+		}
+		
 	}
 	
 	private void headTowardsPackages(Coordinate currPos) {
@@ -102,12 +119,19 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 						return;
 					}
 				}
+				for (Coordinate coord3 : view.keySet()) {
+					if (view.get(coord3) instanceof HealthTrap && control.getHealth() < 300) {
+						hazardFindPath(currPos, coord3);
+						return;
+					}
+				}
 				for (Coordinate coord2 : view.keySet()) {
-					if (view.get(coord2) instanceof WaterTrap) {
+					if (view.get(coord2) instanceof WaterTrap && control.getHealth() < 200) {
 						hazardFindPath(currPos, coord2);
 						return;
 					}
 				}
+				
 			}
 		}
 	}
@@ -120,53 +144,16 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		if (tempPath != null && tempPath.size() > 0) {
 			control.setPath(tempPath);
 			return;
-		} else if (tempPath == null || tempPath.size() == 0){
+		} else if (tempPath == null || tempPath.size() == 0) {
 			// Can be optimised, coordinate-wise removal
-			ArrayList<Coordinate> bestPath = new ArrayList<>();
+			ArrayList<Coordinate> bestPath = control.findPath(currPos, to, tempHazards);
 			for (Coordinate hazard : control.hazardsMap.keySet()) {
 				tempHazards.remove(hazard);
 				tempPath = control.findPath(currPos, to, tempHazards);
-				
 				if (tempPath.size() > 0) {
-					if (bestPath == null || tempPath.size() < bestPath.size()) {
-						bestPath = tempPath;
-					}
+					control.setPath(tempPath);
 				}
 			}
-			if (bestPath != null && bestPath.size() > 0) {
-				control.setPath(tempPath);
-				return;
-			}
 		}
-	}
-	
-	
-	// generates a spiral of Coordinates around a specified start in the anticlockwise direction
-	// NOTE: many points in the output array will not be valid Coordinates in the map
-	private ArrayList<Coordinate> generateSpiral(Coordinate start){
-		ArrayList<Coordinate> spiral = new ArrayList<>();
-		int dx = 1;
-		int signX = 1;
-		int dy = 1;
-		int signY = 1;
-		Coordinate temp = new Coordinate(start.toString());
-		
-		while(start.x + dx <= World.MAP_WIDTH || start.x - dx >= 0 ||
-				start.y + dy <= World.MAP_HEIGHT || start.y - dy >= 0) {
-			for (int i = 0; i < dx; i++) {
-				temp.x += signX;
-				spiral.add(new Coordinate(temp.toString()));
-			}
-			for (int i = 0; i < dy; i++) {
-				temp.y += signY;
-				spiral.add(new Coordinate(temp.toString()));
-			}
-			dx++;
-			signX *= -1;
-			dy++;
-			signY *= -1;
-		}
-		
-		return spiral;
 	}
 }

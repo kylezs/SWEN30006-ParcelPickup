@@ -32,6 +32,9 @@ public class MyAutoController extends CarController {
 		protected Coordinate dest;
 		protected boolean isHeadingToFinish = false;
 		
+		protected boolean isSitting;
+		private int timeSpentSitting = 0;
+		
 		// stores the locations of the exit tiles
 		protected ArrayList<Coordinate> finish = new ArrayList<Coordinate>();
 		protected ArrayList<Coordinate> unseenCoords = new ArrayList<Coordinate>();

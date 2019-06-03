@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-
 import tiles.HealthTrap;
 import tiles.MapTile;
 import tiles.ParcelTrap;
@@ -19,7 +18,7 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 	HashSet<Coordinate> emptySet = new HashSet<Coordinate>();
 	
 	private static final int HEALTH_TRAP_THRESHOLD = 300;
-	private static final int WATER_TRAP_THRESHOLD = 200;
+	private static final int WATER_TRAP_THRESHOLD = 150;
 
 	public ConserveHealthStrategy(MyAutoController myAutoController) {
 		this.control = myAutoController;
@@ -56,7 +55,6 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 				// find path to exit
 				ArrayList<Coordinate> tempPath = null;
 				tempPath = control.findPath(currPos, control.finish.get(0), control.hazardsMap.keySet());
-				System.out.println("Size of map: " + control.hazardsMap.keySet().size());
 				Set<Coordinate> tempHazards = new HashSet<>(control.hazardsMap.keySet());
 				ArrayList<Coordinate> toBeRemoved = new ArrayList<>();
 				// TODO: Can be optimized
@@ -82,11 +80,19 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		if (control.currentPath == null) {
 			// advance in spiral around currPos until "close enough" point is found
 			// currently just looks at all points and finds closest, room for optimisation
-			for (Coordinate coord: control.generateSpiral(currPos, control.getOrientation())) {
-				if (control.unseenCoords.contains(coord)) {
-					hazardFindPath(currPos, coord);
+			// advance in spiral around currPos until "close enough" point is found
+			// currently just looks at all points and finds closest, room for optimisation
+			ArrayList<Coordinate> path;
+			ArrayList<Coordinate> bestPath = null;
+			for (Coordinate coord: control.unseenCoords) {
+				path = control.findPath(currPos, coord, emptySet);
+				if (path.size() > 0) {
+					if (bestPath == null || path.size() < bestPath.size()) {
+						bestPath = path;
+					}
 				}
 			}
+			control.setPath(bestPath);
 		}
 		
 		MapTile currTile = control.getView().get(currPos);
@@ -120,13 +126,13 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 					}
 				}
 				for (Coordinate coord3 : view.keySet()) {
-					if (view.get(coord3) instanceof HealthTrap && control.getHealth() < 300) {
+					if (view.get(coord3) instanceof HealthTrap && control.getHealth() < WATER_TRAP_THRESHOLD) {
 						hazardFindPath(currPos, coord3);
 						return;
 					}
 				}
 				for (Coordinate coord2 : view.keySet()) {
-					if (view.get(coord2) instanceof WaterTrap && control.getHealth() < 200) {
+					if (view.get(coord2) instanceof WaterTrap && control.getHealth() < WATER_TRAP_THRESHOLD) {
 						hazardFindPath(currPos, coord2);
 						return;
 					}
@@ -145,14 +151,22 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 			control.setPath(tempPath);
 			return;
 		} else if (tempPath == null || tempPath.size() == 0) {
-			// Can be optimised, coordinate-wise removal
-			ArrayList<Coordinate> bestPath = control.findPath(currPos, to, tempHazards);
-			for (Coordinate hazard : control.hazardsMap.keySet()) {
-				tempHazards.remove(hazard);
-				tempPath = control.findPath(currPos, to, tempHazards);
-				if (tempPath.size() > 0) {
-					control.setPath(tempPath);
+			
+			if (control.getHealth() < 120) {
+				// Can be optimised, coordinate-wise removal
+				for (Coordinate hazard : control.hazardsMap.keySet()) {
+					tempHazards.remove(hazard);
+					tempPath = control.findPath(currPos, to, tempHazards);
+					if (tempPath.size() > 0) {
+						break;
+					}
 				}
+			} else {
+				System.out.println("Have enough health to ignore some lava");
+				tempPath = control.findPath(currPos, to, new HashSet<Coordinate>());
+			}
+			if (tempPath.size() > 0) {
+				control.setPath(tempPath);
 			}
 		}
 	}

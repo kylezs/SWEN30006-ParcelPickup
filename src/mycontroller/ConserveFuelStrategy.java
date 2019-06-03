@@ -21,6 +21,7 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 	MyAutoController control;
 	HashSet<Coordinate> emptySet = new HashSet<Coordinate>();
 	private static final int criticalHealthThresh = 100;
+	private static final int prioritiseHealthyPathThresh = 2;
 
 	public ConserveFuelStrategy(MyAutoController myAutoController) {
 		this.control = myAutoController;
@@ -105,7 +106,7 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 			control.setPath(bestPath);
 			if (bestHazardFreePath != null) {
 				int sizeDiff = bestHazardFreePath.size() - bestPath.size();
-				if (control.getHealth() < criticalHealthThresh ||  sizeDiff <= 1) {
+				if (control.getHealth() < criticalHealthThresh ||  sizeDiff <= prioritiseHealthyPathThresh) {
 					control.setPath(bestHazardFreePath);
 				}
 			}

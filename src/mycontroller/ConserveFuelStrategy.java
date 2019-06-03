@@ -38,9 +38,6 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 		// moving towards exit
 		Coordinate currPos = new Coordinate(control.getPosition());
 		
-		// update path and associated variables 
-		control.updatePathVariables();
-		
 		// if we have enough packages head to the exit
 		if (control.numParcels() <= control.numParcelsFound()) {
 			// if we don't have a path to the exit
@@ -53,11 +50,11 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 		}
 		
 		// move towards any visible packages if we're not heading to the finish
-		moveTowardsParcels();
+		findPathToParcels();
 		
 		// if we still don't have a path, head to the closest unseen tile (according to path length)
 		if (control.currentPath == null) {
-			moveTowardsUnseen();
+			findPathToUnseen();
 		}
 		
 		// if currently on a health trap, sit there until we have plenty of health
@@ -73,7 +70,7 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 		}
 	}
 	
-	private void moveTowardsParcels() {
+	private void findPathToParcels() {
 		Coordinate currPos = new Coordinate(control.getPosition());
 		HashMap<Coordinate,MapTile> view = control.getView();
 		
@@ -101,7 +98,7 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 		}
 	}
 	
-	private void moveTowardsUnseen() {
+	private void findPathToUnseen() {
 		Coordinate currPos = new Coordinate(control.getPosition());
 		
 		ArrayList<Coordinate> path;

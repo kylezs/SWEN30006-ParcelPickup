@@ -30,8 +30,6 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		// moving towards exit
 		Coordinate currPos = new Coordinate(control.getPosition());
 		
-		control.updatePathVariables();
-		
 		// if we have enough packages head to the exit
 		if (control.numParcels() <= control.numParcelsFound()) {
 			// if we don't have a path to the exit

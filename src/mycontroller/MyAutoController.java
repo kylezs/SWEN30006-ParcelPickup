@@ -87,6 +87,8 @@ public class MyAutoController extends CarController {
 					hazardsMap.put(coord, view.get(coord));
 				}
 			}
+			// update path and associated variables 
+			updatePathVariables();
 			this.movementStrategy.move();
 		}
 		

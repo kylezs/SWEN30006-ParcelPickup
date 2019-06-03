@@ -94,9 +94,6 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 			isHealth = false;
 			control.moveTowards(control.dest);
 		}
- 
-		
-		
 		
 	}
 	
@@ -182,19 +179,19 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 			return;
 		} else if (tempPath == null || tempPath.size() == 0) {
 			
-//			if (control.getHealth() < 120) {
-//				// Can be optimised, coordinate-wise removal
-//				for (Coordinate hazard : control.hazardsMap.keySet()) {
-//					tempHazards.remove(hazard);
-//					tempPath = control.findPath(currPos, to, tempHazards);
-//					if (tempPath.size() > 0) {
-//						break;
-//					}
-//				}
-//			} else {
-//				System.out.println("Have enough health to ignore some lava");
-//				tempPath = control.findPath(currPos, to, new HashSet<Coordinate>());
-//			}
+			if (control.getHealth() < 120) {
+				// Can be optimised, coordinate-wise removal
+				for (Coordinate hazard : control.hazardsMap.keySet()) {
+					tempHazards.remove(hazard);
+					tempPath = control.findPath(currPos, to, tempHazards);
+					if (tempPath.size() > 0) {
+						break;
+					}
+				}
+			} else {
+				System.out.println("Have enough health to ignore some lava");
+				tempPath = control.findPath(currPos, to, new HashSet<Coordinate>());
+			}
 			tempPath = control.findPath(currPos, to, new HashSet<Coordinate>());
 			if (tempPath.size() > 0) {
 				control.setPath(tempPath);

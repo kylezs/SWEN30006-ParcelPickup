@@ -57,33 +57,7 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 		
 		// if we still don't have a path, head to the closest unseen tile (according to path length)
 		if (control.currentPath == null) {
-			// advance in spiral around currPos until "close enough" point is found
-			// currently just looks at all points and finds closest, room for optimization
-			ArrayList<Coordinate> path;
-			ArrayList<Coordinate> bestPath = null;
-			ArrayList<Coordinate> bestHazardFreePath = null;
-			for (Coordinate coord: control.unseenCoords) {
-				path = control.findPath(currPos, coord, emptySet);
-				if (path.size() > 0) {
-					if (bestPath == null || path.size() < bestPath.size()) {
-						bestPath = path;
-					}
-				}
-				path = control.findPath(currPos, coord, control.hazardsMap.keySet());
-				if (path.size() > 0) {
-					if (bestHazardFreePath == null || path.size() < bestHazardFreePath.size()) {
-						bestHazardFreePath = path;
-					}
-				}
-			}
-			
-			control.setPath(bestPath);
-			if (bestHazardFreePath != null) {
-				int sizeDiff = bestHazardFreePath.size() - bestPath.size();
-				if (control.getHealth() < CRITICAL_HEALTH_THRESH ||  sizeDiff <= PRIORITISE_HEALTH_PATH_THRESH) {
-					control.setPath(bestHazardFreePath);
-				}
-			}
+			moveTowardsUnseen();
 		}
 		
 		// if currently on a health trap, sit there until we have plenty of health
@@ -123,6 +97,36 @@ public class ConserveFuelStrategy implements IMovementStrategy {
 						}
 					}
 				}
+			}
+		}
+	}
+	
+	private void moveTowardsUnseen() {
+		Coordinate currPos = new Coordinate(control.getPosition());
+		
+		ArrayList<Coordinate> path;
+		ArrayList<Coordinate> bestPath = null;
+		ArrayList<Coordinate> bestHazardFreePath = null;
+		for (Coordinate coord: control.unseenCoords) {
+			path = control.findPath(currPos, coord, emptySet);
+			if (path.size() > 0) {
+				if (bestPath == null || path.size() < bestPath.size()) {
+					bestPath = path;
+				}
+			}
+			path = control.findPath(currPos, coord, control.hazardsMap.keySet());
+			if (path.size() > 0) {
+				if (bestHazardFreePath == null || path.size() < bestHazardFreePath.size()) {
+					bestHazardFreePath = path;
+				}
+			}
+		}
+		
+		control.setPath(bestPath);
+		if (bestHazardFreePath != null) {
+			int sizeDiff = bestHazardFreePath.size() - bestPath.size();
+			if (control.getHealth() < CRITICAL_HEALTH_THRESH ||  sizeDiff <= PRIORITISE_HEALTH_PATH_THRESH) {
+				control.setPath(bestHazardFreePath);
 			}
 		}
 	}

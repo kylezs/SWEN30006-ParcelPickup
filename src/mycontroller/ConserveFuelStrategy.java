@@ -21,7 +21,7 @@ import world.World;
 public class ConserveFuelStrategy implements IMovementStrategy {
 	
 	MyAutoController control;
-	HashSet<Coordinate> emptySet = new HashSet<Coordinate>();
+	private static final HashSet<Coordinate> emptySet = new HashSet<Coordinate>();
 	
 	private static final int LEAVE_HEALTH_TRAP_THRESHOLD = 200;
 	private static final int CRITICAL_HEALTH_THRESH = 150;

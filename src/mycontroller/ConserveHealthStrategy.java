@@ -29,7 +29,7 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		// general strategy is go to the nearest unseen tile and at any point deviate if a
 		// package is seen. As soon as the correct number of packages are found start
 		// moving towards exit
-		Coordinate currPos = new Coordinate(control.getPosition());		
+		Coordinate currPos = new Coordinate(control.getPosition());
 		
 		control.updatePathVariables();
 		
@@ -40,22 +40,18 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 			if (control.currentPath == null || !control.isHeadingToFinish) {	
 				// find path to exit
 				ArrayList<Coordinate> tempPath = null;
+				// See if there's a path without needing to go through hazards
 				tempPath = control.findPath(currPos, control.finish.get(0), control.hazardsMap.keySet());
 				Set<Coordinate> tempHazards = new HashSet<>(control.hazardsMap.keySet());
-				ArrayList<Coordinate> toBeRemoved = new ArrayList<>();
-				// TODO: Can be optimized
+				// If no path without going through hazards, just go through them
 				if (tempPath == null || tempPath.size() == 0) {
 					for (Coordinate coord : control.hazardsMap.keySet()) {
-						toBeRemoved.add(coord);
-					}
-					for (Coordinate rem : toBeRemoved) {
-						tempHazards.remove(rem);
+						tempHazards.remove(coord);
 					}
 				}
 				// If it's a valid map, there should be a path now
 				control.setPath(control.findPath(currPos, control.finish.get(0), tempHazards));
-
-				// System.out.println(pathToExit.toString());	
+	
 				control.isHeadingToFinish = true;
 			}
 		}
@@ -73,7 +69,6 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 			}
 		}
 		if (isHealth && (control.getHealth() < HEALTH_TRAP_THRESHOLD)) {
-			System.out.println("Doing nothing");
 			// do nothing
 			return;
 		} else {
@@ -87,7 +82,6 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		
 		// if we still don't have a path, head to the closest unseen tile (acording to path length)
 		if (control.currentPath == null) {
-			System.out.println("Explore unseen");
 			// advance in spiral around currPos until "close enough" point is found
 			// currently just looks at all points and finds closest, room for optimisation
 			// advance in spiral around currPos until "close enough" point is found
@@ -175,7 +169,6 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 					}
 				}
 			} else {
-				System.out.println("Have enough health to ignore some lava");
 				tempPath = control.findPath(currPos, to, new HashSet<Coordinate>());
 			}
 			tempPath = control.findPath(currPos, to, new HashSet<Coordinate>());

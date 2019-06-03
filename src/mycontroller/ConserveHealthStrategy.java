@@ -31,21 +31,7 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		// moving towards exit
 		Coordinate currPos = new Coordinate(control.getPosition());		
 		
-		if (control.currentPath != null) {
-			// did we make it to the control.dest?
-			if (currPos.equals(control.dest)) {
-				control.nextInPath++;
-			}
-			
-			// have we finished the path?
-			if (control.nextInPath == control.currentPath.size()) {
-				System.out.println("Made it to control.destination");
-				// reset the path and stop
-				control.resetPath();
-			} else {
-				control.updateDest();
-			}
-		}
+		control.updatePathVariables();
 		
 		// if we have enough packages head to the exit
 		if (control.numParcels() <= control.numParcelsFound()) {

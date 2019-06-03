@@ -17,7 +17,7 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 	MyAutoController control;
 	HashSet<Coordinate> emptySet = new HashSet<Coordinate>();
 	
-	private static final int HEALTH_TRAP_THRESHOLD = 300;
+	private static final int HEALTH_TRAP_THRESHOLD = 260;
 	private static final int WATER_TRAP_THRESHOLD = 150;
 
 	public ConserveHealthStrategy(MyAutoController myAutoController) {
@@ -82,16 +82,35 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 			// currently just looks at all points and finds closest, room for optimisation
 			// advance in spiral around currPos until "close enough" point is found
 			// currently just looks at all points and finds closest, room for optimisation
-			ArrayList<Coordinate> path;
+			ArrayList<Coordinate> path = null;
 			ArrayList<Coordinate> bestPath = null;
 			for (Coordinate coord: control.unseenCoords) {
-				path = control.findPath(currPos, coord, emptySet);
+				Set<Coordinate> tempHazards = new HashSet<>(control.hazardsMap.keySet());
+				path = control.findPath(currPos, coord, tempHazards);
 				if (path.size() > 0) {
 					if (bestPath == null || path.size() < bestPath.size()) {
 						bestPath = path;
 					}
 				}
 			}
+			
+			if (bestPath == null || bestPath.size() == 0) {
+				for (Coordinate coord: control.unseenCoords) {
+					Set<Coordinate> tempHazards = new HashSet<>(control.hazardsMap.keySet());
+//					path = control.findPath(currPos, coord, tempHazards);
+					for (Coordinate hazard : control.hazardsMap.keySet()) {
+						tempHazards.remove(hazard);
+						path = control.findPath(currPos, coord, tempHazards);
+						if (path.size() > 0) {
+							if (bestPath == null || path.size() < bestPath.size()) {
+								bestPath = path;
+							}
+						}
+					}
+
+				}
+			}
+			
 			control.setPath(bestPath);
 		}
 		

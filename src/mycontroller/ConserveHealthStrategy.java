@@ -36,7 +36,6 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		// if we have enough packages head to the exit
 		if (control.numParcels() <= control.numParcelsFound()) {
 			// if we don't have a path to the exit
-			System.out.println("Finding path to exit");
 			if (control.currentPath == null || !control.isHeadingToFinish) {	
 				// find path to exit
 				ArrayList<Coordinate> tempPath = null;

@@ -78,19 +78,11 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		if (control.currentPath == null) {
 			// advance in spiral around currPos until "close enough" point is found
 			// currently just looks at all points and finds closest, room for optimisation
-			ArrayList<Coordinate> path;
-			ArrayList<Coordinate> bestPath = null;
-			for (Coordinate coord: generateSpiral(currPos)) {
+			for (Coordinate coord: control.unseenCoords) {
 				if (control.unseenCoords.contains(coord)) {
-					path = control.findPath(currPos, coord, emptySet);
-					if (path.size() > 0) {
-						if (bestPath == null || path.size() < bestPath.size()) {
-							bestPath = path;
-						}
-					}
+					hazardFindPath(currPos, coord);
 				}
 			}
-			control.setPath(bestPath);
 		}
 		
 		control.moveTowards(control.dest);
@@ -107,8 +99,13 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 					Set<Coordinate> tempHazards = new HashSet<>(control.hazardsMap.keySet());
 					if (view.get(coord) instanceof ParcelTrap) {
 						hazardFindPath(currPos, coord);
-					} else if (view.get(coord) instanceof WaterTrap) {
-						hazardFindPath(currPos, coord);
+						return;
+					}
+				}
+				for (Coordinate coord2 : view.keySet()) {
+					if (view.get(coord2) instanceof WaterTrap) {
+						hazardFindPath(currPos, coord2);
+						return;
 					}
 				}
 			}
@@ -119,13 +116,28 @@ public class ConserveHealthStrategy implements IMovementStrategy {
 		ArrayList<Coordinate> tempPath = new ArrayList<>();
 		Set<Coordinate> tempHazards = new HashSet<>(control.hazardsMap.keySet());
 		tempPath = control.findPath(currPos, to, tempHazards);
+		//Find a path will all hazards in it
 		if (tempPath != null && tempPath.size() > 0) {
 			control.setPath(tempPath);
 			return;
-		} else {
-			
+		} else if (tempPath == null || tempPath.size() == 0){
+			// Can be optimised, coordinate-wise removal
+			ArrayList<Coordinate> bestPath = new ArrayList<>();
+			for (Coordinate hazard : control.hazardsMap.keySet()) {
+				tempHazards.remove(hazard);
+				tempPath = control.findPath(currPos, to, tempHazards);
+				
+				if (tempPath.size() > 0) {
+					if (bestPath == null || tempPath.size() < bestPath.size()) {
+						bestPath = tempPath;
+					}
+				}
+			}
+			if (bestPath != null && bestPath.size() > 0) {
+				control.setPath(tempPath);
+				return;
+			}
 		}
-		
 	}
 	
 	

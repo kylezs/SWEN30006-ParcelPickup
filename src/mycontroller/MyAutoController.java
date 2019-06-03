@@ -131,7 +131,6 @@ public class MyAutoController extends CarController {
 				} else if (reqRelDir == myRelativeDirection.FORWARD) {
 					this.applyForwardAcceleration();
 				} else if (reqRelDir == myRelativeDirection.BACKWARD) {
-					System.out.println("Applying reverse acceleration");
 					this.applyReverseAcceleration();
 				} else {
 					System.out.println("Movetowards couldn't move the car");

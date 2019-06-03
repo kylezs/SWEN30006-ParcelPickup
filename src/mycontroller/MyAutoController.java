@@ -426,6 +426,26 @@ public class MyAutoController extends CarController {
 			this.dest = currentPath.get(currentPath.size() - nextInPath - 1);
 		}
 		
+		protected void updatePathVariables() {
+			Coordinate currPos = new Coordinate(this.getPosition());
+			
+			if (this.currentPath != null) {
+				// did we make it to the control.dest?
+				if (currPos.equals(this.dest)) {
+					this.nextInPath++;
+				}
+				
+				// have we finished the path?
+				if (this.nextInPath == this.currentPath.size()) {
+					System.out.println("Made it to destination");
+					// reset the path and stop
+					this.resetPath();
+				} else {
+					this.updateDest();
+				}
+			}
+		}
+		
 		// generates a spiral of Coordinates around a specified start in the anticlockwise direction
 		// NOTE: many points in the output array will not be valid Coordinates in the map
 		protected ArrayList<Coordinate> generateSpiral(Coordinate start, WorldSpatial.Direction initDir){
